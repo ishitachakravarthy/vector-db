@@ -1,6 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
-
 from uuid import UUID, uuid4
 
 from data_models.chunk import Chunk
@@ -10,7 +8,7 @@ class Document(BaseModel):
     """A document containing multiple chunks of text."""
     id: UUID = Field(default_factory=uuid4)
     title: str
-    chunks: List[Chunk] = Field(default_factory=list)
+    chunks: list[Chunk] = Field(default_factory=list)
     metadata: DocumentMetadata
 
     def __init__(self, **data):
@@ -22,14 +20,14 @@ class Document(BaseModel):
         """Add a new chunk to the document."""
         self.chunks.append(chunk)
     
-    def get_chunk(self, chunk_id: UUID) -> Optional[Chunk]:
+    def get_chunk(self, chunk_id: UUID) -> Chunk | None:
         """Retrieve a chunk by its ID."""
         for chunk in self.chunks:
             if chunk.id == chunk_id:
                 return chunk
         return None
     
-    def get_all_chunks(self) -> List[Chunk]:
+    def get_all_chunks(self) -> list[Chunk]:
         """Get all chunks in the document."""
         return self.chunks
 
