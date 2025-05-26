@@ -1,10 +1,7 @@
-from main import co
 
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
-from datetime import datetime, UTC
+from typing import List, Optional
 from uuid import UUID, uuid4
-import numpy as np
 
 from data_models.metadata import ChunkMetadata
 

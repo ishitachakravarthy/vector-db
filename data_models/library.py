@@ -1,9 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from typing import List, Optional
 from uuid import UUID, uuid4
 
 from data_models.document import Document
-from data_models.chunk import Chunk
 from data_models.metadata import LibraryMetadata
 
 class Library(BaseModel):
