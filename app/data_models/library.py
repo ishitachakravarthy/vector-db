@@ -4,23 +4,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 from app.data_models.document import Document
-from app.data_models.metadata import LibraryMetadata
+from app.data_models.chunk import Chunk
 
 class Library(BaseModel):
     """A library containing multiple documents and their chunks."""
     id: UUID = Field(default_factory=uuid4)
     title: str
-    documents: list[Document] = Field(default_factory=list)
-    metadata: LibraryMetadata
+    documents: dict[UUID, Document] = Field(default_factory=dict)
 
     def __init__(self, **data):
         super().__init__(**data)
         if not self.documents:
-            self.documents = []
-
-    def _update_timestamp(self) -> None:
-        """Helper method to update the metadata timestamp."""
-        self.metadata.updated_at = datetime.now(timezone.utc)
+            self.documents = {}
 
     def get_library_id(self) -> UUID:
         return self.id
@@ -29,44 +24,29 @@ class Library(BaseModel):
         return self.title
 
     def get_all_docs(self) -> list[Document]:
-        return self.documents
+        return list(self.documents.values())
 
     def search_document(self, document_id: UUID) -> Document | None:
-        for document in self.documents:
-            if document.get_doc_id() == document_id:
-                return document
-        return None
+        return self.documents.get(document_id)
 
     def update_library_title(self, new_library_title: str) -> None:
         self.title = new_library_title
-        self._update_timestamp()
-
-    def update_metadata(self, new_metadata: LibraryMetadata):
-        self.metadata = new_metadata
-        self._update_timestamp()
 
     def add_document(self, document: Document) -> None:
-        self.documents.append(document)
-        self._update_timestamp()
+        self.documents[document.get_doc_id()] = document
 
     def delete_document(self, document_id: UUID) -> bool:
-        for i, document in enumerate(self.documents):
-            if document.get_doc_id() == document_id:
-                self.documents.pop(i)
-                self._update_timestamp()
-                return True
-        return False
+        return self.documents.pop(document_id, None) is not None
 
     def delete_all_documents(self) -> None:
-        self.documents = []
-        self._update_timestamp()
+        self.documents = {}
 
     def add_chunk(self, document: Document) -> None:
-        self.documents.append(document)
-        self._update_timestamp()
+        self.documents[document.get_doc_id()] = document
 
     def delete_chunk(self, chunk_id: UUID) -> bool:
-        for i, document in enumerate(self.documents):
-            chunk_delete=document.delete_chunk(chunk_id)
-            if chunk_delete: return True
+        document = self.documents.get(chunk_id)
+        if document:
+            document.delete_chunk(chunk_id)
+            return True
         return False

@@ -1,43 +1,113 @@
-from pymongo import MongoClient
-from pymongo.collection import Collection
-from pymongo.database import Database
-from typing import Any, Dict
+from typing import List, Optional, Dict, Any
+from uuid import UUID
 from datetime import datetime, timezone
+from pymongo import MongoClient
+from pymongo.database import Database
+from pymongo.collection import Collection
+from bson import Binary
 import logging
-
 from app.data_models.library import Library
-from app.data_models.metadata import LibraryMetadata
+from app.data_models.document import Document
 
-# Configure MongoDB logging
-logging.getLogger('pymongo').setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 
 class MongoRepository:
-    def __init__(self, uri: str = "mongodb://mongodb:27017", db_name: str = "vector-db"):
-        self.client = MongoClient(uri)
-        self.db: Database = self.client[db_name]
+    def __init__(self):
+        self.client: MongoClient = None
+        self.db: Database = None
+        self.libraries: Collection = None
+        self.documents: Collection = None
+        self._connect()
 
-        # Ensure collections exist
-        if "libraries" not in self.db.list_collection_names():
-            self.db.create_collection("libraries")
+    def _connect(self) -> None:
+        """Connect to MongoDB."""
+        try:
+            # Configure MongoDB to use UUID representation
+            self.client = MongoClient('mongodb://localhost:27017/', uuidRepresentation='standard')
+            self.db = self.client['vector_db']
+            self.libraries = self.db.libraries
+            self.documents = self.db.documents
+            logger.info("Connected to MongoDB")
+        except Exception as e:
+            logger.error(f"Failed to connect to MongoDB: {str(e)}")
+            raise
 
-        self.libraries: Collection = self.db["libraries"]
+    def _serialize_document(self, document: Document) -> dict:
+        """Convert a Document object to a dictionary for MongoDB."""
+        doc_dict = document.model_dump()
+        doc_dict['id'] = str(doc_dict['id'])
+        if 'chunks' in doc_dict:
+            doc_dict['chunks'] = {str(k): v.model_dump() for k, v in document.chunks.items()}
+        return doc_dict
 
-    def _convert_metadata(self, data: Dict[str, Any], metadata_type: type) -> Dict[str, Any]:
-        if not data: return data
-        metadata = data["metadata"]
-        if isinstance(metadata, dict):
-            metadata["created_at"] = datetime.fromisoformat(metadata["created_at"]).replace(tzinfo=timezone.utc)
-            metadata["updated_at"] = datetime.fromisoformat(metadata["updated_at"]).replace(tzinfo=timezone.utc)
-            data["metadata"] = metadata_type(**metadata)
-        return data
+    def _serialize_library(self, library: Library) -> dict:
+        """Convert a Library object to a dictionary for MongoDB."""
+        lib_dict = library.model_dump()
+        lib_dict['id'] = str(lib_dict['id'])
+        if 'documents' in lib_dict:
+            lib_dict['documents'] = {str(k): self._serialize_document(v) for k, v in library.documents.items()}
+        return lib_dict
 
-    def _convert_to_library(self, data: Dict[str, Any]) -> Library:
-        """Convert MongoDB document to Library model."""
-        if not data: return None
-        data = self._convert_metadata(data, LibraryMetadata)
-        return Library(**data)
+    def create_library(self, library: Library) -> Library:
+        try:
+            data = self._serialize_library(library)
+            self.libraries.insert_one(data)
+            return library
+        except Exception as e:
+            logger.error(f"Error creating library: {str(e)}")
+            raise
 
-    def find_all_libraries(self) -> list[Library]:
-        """Find all libraries in the database."""
-        all_libraries = self.libraries.find()
-        return [self._convert_to_library(library) for library in all_libraries]
+    def get_library(self, library_id: UUID) -> Optional[Library]:
+        """Get a library by ID."""
+        try:
+            data = self.libraries.find_one({"id": str(library_id)})
+            if data:
+                data['id'] = UUID(data['id'])
+                if 'documents' in data:
+                    data['documents'] = {UUID(k): Document(**v) for k, v in data['documents'].items()}
+                return Library(**data)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting library: {str(e)}")
+            raise
+
+    def list_libraries(self) -> List[Library]:
+        """List all libraries."""
+        try:
+            libraries = []
+            for data in self.libraries.find():
+                data['id'] = UUID(data['id'])
+                if 'documents' in data:
+                    data['documents'] = {UUID(k): Document(**v) for k, v in data['documents'].items()}
+                libraries.append(Library(**data))
+            return libraries
+        except Exception as e:
+            logger.error(f"Error listing libraries: {str(e)}")
+            raise
+
+    def save_library(self, library: Library) -> Library:
+        """Save or update a library in MongoDB."""
+        try:
+            library_dict = self._serialize_library(library)
+            
+            # Use upsert to create if not exists, update if exists
+            result = self.libraries.update_one(
+                {"id": library_dict['id']},
+                {"$set": library_dict},
+                upsert=True
+            )
+            
+            logger.info(f"Saved library with ID: {library_dict['id']}")
+            return library
+        except Exception as e:
+            logger.error(f"Error saving library: {str(e)}")
+            raise
+
+    def delete_library(self, library_id: UUID) -> bool:
+        """Delete a library."""
+        try:
+            result = self.libraries.delete_one({"id": str(library_id)})
+            return result.deleted_count > 0
+        except Exception as e:
+            logger.error(f"Error deleting library: {str(e)}")
+            raise
