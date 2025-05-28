@@ -1,11 +1,10 @@
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 import numpy as np
-from datetime import datetime,UTC
+from datetime import datetime, timezone
 
-
-from data_models.document import Document
-from data_models.metadata import LibraryMetadata
+from app.data_models.document import Document
+from app.data_models.metadata import LibraryMetadata
 
 class Library(BaseModel):
     """A library containing multiple documents and their chunks."""
@@ -21,7 +20,7 @@ class Library(BaseModel):
 
     def _update_timestamp(self) -> None:
         """Helper method to update the metadata timestamp."""
-        self.metadata.updated_at = datetime.now(UTC)
+        self.metadata.updated_at = datetime.now(timezone.utc)
 
     def get_library_id(self) -> UUID:
         return self.id

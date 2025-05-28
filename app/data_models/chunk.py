@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID, uuid4
 from datetime import datetime,UTC
 
-from data_models.metadata import ChunkMetadata
+from app.data_models.metadata import ChunkMetadata
 from main import co
 
 class Chunk(BaseModel):

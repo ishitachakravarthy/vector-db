@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field
 from uuid import UUID, uuid4
-from datetime import datetime,UTC
+from datetime import datetime, timezone
 
 
-from data_models.chunk import Chunk
+from app.data_models.chunk import Chunk
 from data_models.metadata import DocumentMetadata
 
 class Document(BaseModel):
@@ -20,7 +20,7 @@ class Document(BaseModel):
 
     def _update_timestamp(self) -> None:
         """Helper method to update the metadata timestamp."""
-        self.metadata.updated_at = datetime.now(UTC)
+        self.metadata.updated_at = datetime.now(timezone.utc)
 
     def get_doc_id(self) -> UUID:
         return self.id

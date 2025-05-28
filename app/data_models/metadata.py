@@ -1,16 +1,22 @@
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 class BaseMetadata(ABC, BaseModel):
     """Abstract base class for all metadata types."""
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), description="When the item was created")
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC), description="When the item was last updated")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the item was created",
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the item was last updated",
+    )
     version: int = Field(default=1, description="Version number of the item")
 
     def update_timestamp(self) -> None:
         """Update the updated_at timestamp."""
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = datetime.now(timezone.utc)
         self.version += 1
 
     @abstractmethod
