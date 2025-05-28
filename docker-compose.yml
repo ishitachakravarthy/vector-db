@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URI=mongodb://mongodb_user:mongodb_password@mongodb:27017/vector-db?authSource=admin
+      - MONGODB_URI=mongodb://mongodb:27017/vector-db
     volumes:
       - .:/app  # Mount the current directory into /app
     depends_on:
@@ -16,13 +16,10 @@ services:
     image: mongo:latest
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=mongodb_user
-      - MONGO_INITDB_ROOT_PASSWORD=mongodb_password
-      - MONGO_INITDB_DATABASE=vector-db
+    command: mongod --quiet --logpath=/dev/null --logappend
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    # - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
 volumes:
   mongodb_data: 

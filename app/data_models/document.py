@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field
 from uuid import UUID, uuid4
+from pydantic import BaseModel, Field
+import numpy as np
 from datetime import datetime, timezone
 
-
 from app.data_models.chunk import Chunk
-from data_models.metadata import DocumentMetadata
+from app.data_models.metadata import DocumentMetadata
 
 class Document(BaseModel):
     """A document containing multiple chunks of text."""

@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field
 from uuid import UUID, uuid4
-from datetime import datetime,UTC
+from datetime import datetime,timezone
 
 from app.data_models.metadata import ChunkMetadata
-from main import co
+
 
 class Chunk(BaseModel):
     """A chunk of text with its vector representation."""
@@ -18,7 +18,7 @@ class Chunk(BaseModel):
         self.set_vector_emb()
 
     def _update_timestamp(self) -> None:
-        self.metadata.updated_at = datetime.now(UTC)
+        self.metadata.updated_at = datetime.now(timezone.utc)
 
     # Getters for Chunk
     def get_chunk_id(self)->UUID:

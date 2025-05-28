@@ -1,0 +1,62 @@
+{
+  "libraries": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "Research Papers",
+      "documents": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440001",
+          "title": "AI Research Overview",
+          "chunks": [
+            {
+              "id": "550e8400-e29b-41d4-a716-446655440002",
+              "text": "Artificial Intelligence has made significant progress in recent years.",
+              "embedding": [0.1, 0.2, 0.3]
+            }
+          ],
+          "metadata": {
+            "created_at": "2024-03-20T10:00:00+00:00",
+            "updated_at": "2024-03-20T10:00:00+00:00",
+            "source": "research_paper",
+            "author": "John Doe"
+          }
+        }
+      ],
+      "metadata": {
+        "created_at": "2024-03-20T10:00:00+00:00",
+        "updated_at": "2024-03-20T10:00:00+00:00",
+        "description": "Collection of AI research papers",
+        "tags": ["AI", "Research"]
+      }
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "title": "Technical Documentation",
+      "documents": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440004",
+          "title": "API Documentation",
+          "chunks": [
+            {
+              "id": "550e8400-e29b-41d4-a716-446655440005",
+              "text": "The API provides endpoints for managing libraries and documents.",
+              "embedding": [0.4, 0.5, 0.6]
+            }
+          ],
+          "metadata": {
+            "created_at": "2024-03-20T11:00:00+00:00",
+            "updated_at": "2024-03-20T11:00:00+00:00",
+            "source": "api_docs",
+            "version": "1.0"
+          }
+        }
+      ],
+      "metadata": {
+        "created_at": "2024-03-20T11:00:00+00:00",
+        "updated_at": "2024-03-20T11:00:00+00:00",
+        "description": "Technical documentation for the project",
+        "tags": ["Documentation", "API"]
+      }
+    }
+  ]
+} 
