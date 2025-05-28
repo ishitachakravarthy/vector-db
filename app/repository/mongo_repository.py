@@ -17,6 +17,7 @@ class MongoRepository:
         self.db: Database = None
         self.libraries: Collection = None
         self.documents: Collection = None
+        self.vectors: Collection = None
         self._connect()
 
     def _connect(self) -> None:
@@ -27,6 +28,7 @@ class MongoRepository:
             self.db = self.client['vector_db']
             self.libraries = self.db.libraries
             self.documents = self.db.documents
+            self.vectors = self.db.vectors
             logger.info("Connected to MongoDB")
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
@@ -111,3 +113,29 @@ class MongoRepository:
         except Exception as e:
             logger.error(f"Error deleting library: {str(e)}")
             raise
+
+    def save_vector(self, chunk_id: UUID, embedding: List[float]) -> None:
+        """Save a vector embedding for a chunk."""
+        vector_dict = {
+            '_id': str(chunk_id),
+            'embedding': embedding,
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
+        }
+        self.vectors.update_one(
+            {'_id': str(chunk_id)},
+            {'$set': vector_dict},
+            upsert=True
+        )
+
+    def get_vector(self, chunk_id: UUID) -> Optional[List[float]]:
+        """Get a vector embedding for a chunk."""
+        vector_dict = self.vectors.find_one({'_id': str(chunk_id)})
+        if vector_dict:
+            return vector_dict['embedding']
+        return None
+
+    def delete_vector(self, chunk_id: UUID) -> bool:
+        """Delete a vector embedding for a chunk."""
+        result = self.vectors.delete_one({'_id': str(chunk_id)})
+        return result.deleted_count > 0
