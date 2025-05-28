@@ -4,12 +4,13 @@ import cohere
 import logging
 from app.data_models.chunk import Chunk
 from app.repository.mongo_repository import MongoRepository
+from app.config import COHERE_API_KEY
 
 logger = logging.getLogger(__name__)
 
 class VectorDBService:
     def __init__(self, repository: MongoRepository):
-        self.co = cohere.Client("A1Fi5KBBNoekwBPIa833CBScs6Z2mHEtOXxr52KO")  # Replace with your actual API key
+        self.co = cohere.Client(COHERE_API_KEY)
         self.repository = repository
 
     def create_embedding(self, text: str) -> List[float]:

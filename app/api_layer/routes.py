@@ -21,5 +21,5 @@ def get_library_service(repo: MongoRepository = Depends(get_repository)):
 
 @router.get("/libraries", response_model=List[Library])
 async def list_libraries(service: LibraryService = Depends(get_library_service)):
-    """List all libraries with pagination."""
+    """List all libraries in the DB"""
     return service.list_libraries()

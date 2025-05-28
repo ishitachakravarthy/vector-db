@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.collection import Collection
 from bson import Binary
+import uuid
 import logging
 from app.data_models.library import Library
 from app.data_models.document import Document
@@ -45,15 +46,18 @@ class MongoRepository:
     def _serialize_library(self, library: Library) -> dict:
         """Convert a Library object to a dictionary for MongoDB."""
         lib_dict = library.model_dump()
-        lib_dict['id'] = str(lib_dict['id'])
+        # Keep id field and use it as _id
+        lib_dict['_id'] = str(lib_dict['id'])
         if 'documents' in lib_dict:
-            lib_dict['documents'] = {str(k): self._serialize_document(v) for k, v in library.documents.items()}
+            lib_dict['documents'] = [str(doc_id) for doc_id in library.documents]
         return lib_dict
 
     def create_library(self, library: Library) -> Library:
         try:
             data = self._serialize_library(library)
-            self.libraries.insert_one(data)
+            result = self.libraries.insert_one(data)
+            # Update library with MongoDB's _id
+            library.id = result.inserted_id
             return library
         except Exception as e:
             logger.error(f"Error creating library: {str(e)}")
@@ -62,11 +66,11 @@ class MongoRepository:
     def get_library(self, library_id: UUID) -> Optional[Library]:
         """Get a library by ID."""
         try:
-            data = self.libraries.find_one({"id": str(library_id)})
+            data = self.libraries.find_one({"_id": library_id})
             if data:
-                data['id'] = UUID(data['id'])
                 if 'documents' in data:
-                    data['documents'] = {UUID(k): Document(**v) for k, v in data['documents'].items()}
+                    # Convert string UUIDs to UUID objects
+                    data['documents'] = [UUID(str(doc_id)) for doc_id in data['documents']]
                 return Library(**data)
             return None
         except Exception as e:
@@ -78,9 +82,11 @@ class MongoRepository:
         try:
             libraries = []
             for data in self.libraries.find():
-                data['id'] = UUID(data['id'])
                 if 'documents' in data:
-                    data['documents'] = {UUID(k): Document(**v) for k, v in data['documents'].items()}
+                    # Extract UUID string from "UUID('...')" format
+                    data['documents'] = [
+                        uuid.UUID(doc_id.split("'")[1]) for doc_id in data['documents']
+                    ]
                 libraries.append(Library(**data))
             return libraries
         except Exception as e:
@@ -91,15 +97,15 @@ class MongoRepository:
         """Save or update a library in MongoDB."""
         try:
             library_dict = self._serialize_library(library)
-            
+
             # Use upsert to create if not exists, update if exists
             result = self.libraries.update_one(
-                {"id": library_dict['id']},
+                {"_id": library.id},
                 {"$set": library_dict},
                 upsert=True
             )
-            
-            logger.info(f"Saved library with ID: {library_dict['id']}")
+
+            logger.info(f"Saved library with ID: {library.id}")
             return library
         except Exception as e:
             logger.error(f"Error saving library: {str(e)}")
@@ -108,7 +114,7 @@ class MongoRepository:
     def delete_library(self, library_id: UUID) -> bool:
         """Delete a library."""
         try:
-            result = self.libraries.delete_one({"id": str(library_id)})
+            result = self.libraries.delete_one({"_id": library_id})
             return result.deleted_count > 0
         except Exception as e:
             logger.error(f"Error deleting library: {str(e)}")
