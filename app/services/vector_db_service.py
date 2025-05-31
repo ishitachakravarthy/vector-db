@@ -38,7 +38,7 @@ class VectorDBService:
 
                 # Create and save new vector
                 embedding = self.create_embedding(chunk.text)
-                self.repository.save_vector(chunk.id, embedding)
+                self.repository.save_vectors(chunk.id, embedding)
                 logger.info(f"Created and saved embedding for chunk {chunk.id}")
             except Exception as e:
                 logger.error(f"Error saving vector for chunk {chunk.id}: {e}")

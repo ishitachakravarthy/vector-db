@@ -23,7 +23,7 @@ class Library(BaseModel):
     def get_library_title(self) -> str:
         return self.title
 
-    def get_all_docs(self) -> list[Document]:
+    def get_all_doc_ids(self) -> list[Document]:
         return self.documents
 
     def search_document(self, document_id: UUID) -> Document | None:
