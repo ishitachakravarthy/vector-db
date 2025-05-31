@@ -23,6 +23,9 @@ class Chunk(BaseModel):
         super().__init__(**data)
         if not self.metadata:
             self.metadata = ChunkMetadata()
+        # Generate embedding if not provided
+        if not self.embedding:
+            self.generate_embedding()
 
     def _update_timestamp(self) -> None:
         self.metadata.updated_at = datetime.now(timezone.utc)
@@ -51,11 +54,15 @@ class Chunk(BaseModel):
         self.metadata = new_metadata
         self._update_timestamp()
 
+    def update_embedding(self, embedding: List[float]) -> None:
+        """Update the chunk's vector embedding."""
+        self.embedding = embedding
+        self._update_timestamp()
+        
     def generate_embedding(self) -> Optional[List[float]]:
         """Generate embedding for the chunk's text using Cohere."""
         try:
             co = cohere.Client(COHERE_API_KEY)
-
             response = co.embed(
                 texts=[self.text],
                 model="embed-english-v3.0",

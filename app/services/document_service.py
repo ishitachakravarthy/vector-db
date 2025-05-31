@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class DocumentService:
     def __init__(self, repository: MongoRepository):
-        self.repository = repository
+        self.repository = repository.document_repo
 
     def create_document(self, document: Document) -> Document:
         pass

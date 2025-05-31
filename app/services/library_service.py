@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 class LibraryService:
     def __init__(self, repository: MongoRepository):
-        print(repository.library_repo)
         self.repository = repository.library_repo
 
     def create_library(self, library: Library) -> Library:
