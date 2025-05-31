@@ -32,17 +32,6 @@ class DocumentRepository(BaseRepository):
             logger.error(f"Error getting library: {str(e)}")
             raise
 
-    # def get_chunk(self, chunk_id: UUID) -> Optional[Chunk]:
-    #     try:
-    #         data = self.chunks.find_one({"_id": chunk_id})
-    #         if data:
-    #             return Chunk(**data)
-    #         return None
-    #     except Exception as e:
-    #         logger.error(f"Error getting library: {str(e)}")
-    #         raise
-
-
     def save_document(self, document: Document) -> Document:
         """Save or update a library in MongoDB."""
         try:
@@ -57,28 +46,3 @@ class DocumentRepository(BaseRepository):
         except Exception as e:
             logger.error(f"Error saving Document: {str(e)}")
             raise
-
-   
-    # def save_vector(self, chunk_id: UUID, embedding: List[float]) -> None:
-    #     """Save a vector embedding for a chunk."""
-    #     vector_dict = {
-    #         "_id": str(chunk_id),
-    #         "embedding": embedding,
-    #         "created_at": datetime.now(timezone.utc),
-    #         "updated_at": datetime.now(timezone.utc),
-    #     }
-    #     self.vectors.update_one(
-    #         {"_id": str(chunk_id)}, {"$set": vector_dict}, upsert=True
-    #     )
-
-    # def get_vector(self, chunk_id: UUID) -> Optional[List[float]]:
-    #     """Get a vector embedding for a chunk."""
-    #     vector_dict = self.vectors.find_one({"_id": str(chunk_id)})
-    #     if vector_dict:
-    #         return vector_dict["embedding"]
-    #     return None
-
-    # def delete_vector(self, chunk_id: UUID) -> bool:
-    #     """Delete a vector embedding for a chunk."""
-    #     result = self.vectors.delete_one({"_id": str(chunk_id)})
-    #     return result.deleted_count > 0
