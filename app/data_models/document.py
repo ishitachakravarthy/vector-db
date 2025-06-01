@@ -6,6 +6,7 @@ from app.data_models.chunk import Chunk
 class Document(BaseModel):
     """A document containing multiple chunks of text."""
     id: UUID = Field(default_factory=uuid4)
+    library_id: UUID  # Required field to link document to library
     title: str
     chunks: list[UUID] = Field(default_factory=list)
 
@@ -29,6 +30,13 @@ class Document(BaseModel):
     def add_chunk(self, chunk_id: UUID) -> None:
         if chunk_id not in self.chunks:
             self.chunks.append(chunk_id)
+
+    def remove_chunk(self, chunk_id: UUID) -> None:
+        if chunk_id in self.chunks:
+            self.chunks.remove(chunk_id)
+
+    def has_chunk(self, chunk_id: UUID) -> bool:
+        return chunk_id in self.chunks
 
     def delete_chunk(self, chunk_id: UUID) -> bool:
         if chunk_id in self.chunks:

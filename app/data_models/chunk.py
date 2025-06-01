@@ -15,6 +15,7 @@ class Chunk(BaseModel):
     """A chunk of text from a document with its vector embedding."""
 
     id: UUID = Field(default_factory=uuid4)
+    document_id: UUID
     text: str
     embedding: Optional[List[float]] = None
     metadata: ChunkMetadata
@@ -23,7 +24,6 @@ class Chunk(BaseModel):
         super().__init__(**data)
         if not self.metadata:
             self.metadata = ChunkMetadata()
-        # Generate embedding if not provided
         if not self.embedding:
             self.generate_embedding()
 
@@ -39,9 +39,6 @@ class Chunk(BaseModel):
 
     def get_embedding(self) -> Optional[List[float]]:
         return self.embedding
-
-    def get_index_type(self) -> str:
-        return self.index_type
 
     # Setters for Chunk
     def update_chunk_text(self, new_text: str) -> None:
