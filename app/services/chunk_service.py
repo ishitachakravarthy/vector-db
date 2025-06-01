@@ -16,6 +16,7 @@ class ChunkService:
         pass
 
     def get_chunk(self, chunk_id: UUID) -> Optional[Chunk]:
+        return self.repository.get_chunk(chunk_id)
         pass
 
     def list_chunks(self) -> list[Chunk]:
