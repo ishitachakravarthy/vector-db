@@ -6,15 +6,16 @@ import uuid
 import logging
 from app.data_models.chunk import Chunk
 from app.repository.base_repository import BaseRepository
+from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
 
 
 class ChunkRepository(BaseRepository):
-    """Repository for managing libraries in MongoDB."""
+    """Repository for managing chunks in MongoDB."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, db: Database, collection_name: str):
+        super().__init__(db, collection_name)
         self.chunks: Collection = self.db.chunks
 
     def _serialize_chunk(self, chunk: Chunk) -> dict:
@@ -23,6 +24,7 @@ class ChunkRepository(BaseRepository):
         return chunk_dict
 
     def get_chunk(self, chunk_id: UUID) -> Optional[Chunk]:
+        """Get a chunk by ID."""
         try:
             data = self.chunks.find_one({"_id": chunk_id})
             if data:
@@ -45,28 +47,13 @@ class ChunkRepository(BaseRepository):
         except Exception as e:
             logger.error(f"Error saving Chunk: {str(e)}")
             raise
-        pass
 
-    # def save_vector(self, chunk_id: UUID, embedding: List[float]) -> None:
-    #     """Save a vector embedding for a chunk."""
-    #     vector_dict = {
-    #         "_id": str(chunk_id),
-    #         "embedding": embedding,
-    #         "created_at": datetime.now(timezone.utc),
-    #         "updated_at": datetime.now(timezone.utc),
-    #     }
-    #     self.vectors.update_one(
-    #         {"_id": str(chunk_id)}, {"$set": vector_dict}, upsert=True
-    #     )
+    def list_chunks(self) -> List[Chunk]:
+        """List all chunks."""
+        return [Chunk(**doc) for doc in self.chunks.find()]
 
-    # def get_vector(self, chunk_id: UUID) -> Optional[List[float]]:
-    #     """Get a vector embedding for a chunk."""
-    #     vector_dict = self.vectors.find_one({"_id": str(chunk_id)})
-    #     if vector_dict:
-    #         return vector_dict["embedding"]
-    #     return None
+    def delete_chunk(self, chunk_id: UUID) -> bool:
+        """Delete a chunk by ID."""
+        result = self.chunks.delete_one({"_id": chunk_id})
+        return result.deleted_count > 0
 
-    # def delete_vector(self, chunk_id: UUID) -> bool:
-    #     """Delete a vector embedding for a chunk."""
-    #     result = self.vectors.delete_one({"_id": str(chunk_id)})
-    #     return result.deleted_count > 0

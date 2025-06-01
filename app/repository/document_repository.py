@@ -6,6 +6,7 @@ import uuid
 import logging
 from app.data_models.library import Document
 from app.repository.base_repository import BaseRepository
+from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +14,8 @@ logger = logging.getLogger(__name__)
 class DocumentRepository(BaseRepository):
     """Repository for managing libraries in MongoDB."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, db: Database, collection_name: str):
+        super().__init__(db, collection_name)
         self.documents: Collection = self.db.documents
 
     def _serialize_document(self, document: Document) -> dict:
@@ -46,3 +47,12 @@ class DocumentRepository(BaseRepository):
         except Exception as e:
             logger.error(f"Error saving Document: {str(e)}")
             raise
+
+    def list_documents(self) -> List[Document]:
+        """List all documents."""
+        return [Document(**doc) for doc in self.documents.find()]
+
+    def delete_document(self, document_id: UUID) -> bool:
+        """Delete a document by ID."""
+        result = self.documents.delete_one({"_id": document_id})
+        return result.deleted_count > 0

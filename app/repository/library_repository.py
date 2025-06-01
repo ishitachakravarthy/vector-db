@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 from uuid import UUID
 from pymongo.collection import Collection
+from pymongo.database import Database
 import logging
 from app.data_models.library import Library
 from app.repository.base_repository import BaseRepository
@@ -9,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 class LibraryRepository(BaseRepository):
     """Repository for managing libraries in MongoDB."""
-    def __init__(self):
-        super().__init__()
+    def __init__(self, db: Database, collection_name: str):
+        super().__init__(db, collection_name)
         self.libraries: Collection = self.db.libraries
         self.init_indexes()
 
