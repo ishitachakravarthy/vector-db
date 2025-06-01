@@ -17,9 +17,6 @@ class LibraryRepository(BaseRepository):
     def init_indexes(self) -> None:
         """Initialize indexes for the library collection."""
         try:
-            # Drop all existing indexes except _id
-            # self.libraries.drop_indexes()
-
             # Create only the indexes we need
             self.libraries.create_index("title")
             self.libraries.create_index("index_type")
@@ -39,7 +36,6 @@ class LibraryRepository(BaseRepository):
     def create_library(self, library: Library) -> Library:
         try:
             data = self._serialize_library(library)
-            print(data)
             result = self.libraries.insert_one(data)
             library.id = result.inserted_id
             return library
