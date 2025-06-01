@@ -4,8 +4,6 @@ import logging
 from app.repository.mongo_repository import MongoRepository
 from app.indexing.hnsw_index import HNSWIndex
 from app.indexing.flat_index import FlatIndex
-from app.indexing.kd_tree_index import KDTreeIndex
-from app.indexing.ball_tree_index import BallTreeIndex
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +13,6 @@ class IndexService:
     # Map of index type names to their classes
     INDEX_TYPES = {
         "flat": FlatIndex,
-        "kd_tree": KDTreeIndex,
-        "ball_tree": BallTreeIndex,
         "hnsw": HNSWIndex
     }
 
@@ -31,19 +27,14 @@ class IndexService:
             raise ValueError(f"Unsupported index type: {index_type}")
         return self.INDEX_TYPES[index_type]
 
-    def initialize_index(self, library_id: UUID, index_type: str = "hnsw") -> Any:
+    def initialize_index(self, library_id: UUID, index_type: str = "flat") -> Any:
         """Initialize a new index for a library."""
         try:
             # Get the index class
             index_class = self.get_index_type(index_type)
 
-            # Create new index with optimized parameters for HNSW
-            if index_type == "hnsw":
-                # M=64: More connections per element for better recall
-                # ef_construction=400: Larger candidate list during construction for better quality
-                index = index_class(max_elements=1000000, M=64, ef_construction=400)
-            else:
-                index = index_class()
+            # Create new index
+            index = index_class()
 
             # Update library's index type and data
             library = self.repository.library_repo.get_library(library_id)
@@ -74,7 +65,7 @@ class IndexService:
             if not library:
                 raise ValueError(f"Library with ID {library_id} not found")
 
-            index_type = library.index_type or "hnsw"
+            index_type = library.index_type or "flat"
             index_class = self.get_index_type(index_type)
 
             # Create new index

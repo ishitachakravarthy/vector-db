@@ -13,7 +13,7 @@ class Library(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     title: str
     description: Optional[str] = None
-    index_type: str|None = "ball_tree"  # Default to ball tree for high-dimensional spaces
+    index_type: str|None = "flat"  # Default to ball tree for high-dimensional spaces
     index_data: Optional[Dict[str, Any]] = None  # Serialized index data
     documents: list[UUID] = Field(default_factory=list)
 
