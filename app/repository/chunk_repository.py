@@ -31,7 +31,7 @@ class ChunkRepository(BaseRepository):
                 return Chunk(**data)
             return None
         except Exception as e:
-            logger.error(f"Error getting library: {str(e)}")
+            logger.error(f"Error getting chunk: {str(e)}")
             raise
 
     def save_chunk(self, chunk: Chunk) -> Chunk:

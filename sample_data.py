@@ -33,6 +33,7 @@ def create_sample_data():
         # Create a document
         document = Document(
             id=uuid4(),
+            library_id=library.id,
             title="Sample Document",
         )
         logger.info(f"Created document with ID: {document.id}")
@@ -40,6 +41,7 @@ def create_sample_data():
         # Create some chunks
         chunk1 = Chunk(
             id=uuid4(),
+            document_id=document.id,
             text="This is the first chunk of text. It contains some sample content.",
             metadata=ChunkMetadata(
                 section="Introduction",
@@ -51,6 +53,7 @@ def create_sample_data():
 
         chunk2 = Chunk(
             id=uuid4(),
+            document_id=document.id,
             text="This is the second chunk. It has different content for testing.",
             metadata=ChunkMetadata(
                 section="Body",
@@ -66,8 +69,8 @@ def create_sample_data():
         document.add_chunk(chunk1.get_chunk_id())
         document.add_chunk(chunk2.get_chunk_id())
         document_service.save_document(document)
-        chunk_service.save_chunk(chunk1)
-        chunk_service.save_chunk(chunk2)
+        chunk_service.create_chunk(chunk1)
+        chunk_service.create_chunk(chunk2)
         #TODO when adding document, also add associated chunks as something
 
         library.add_document(document.get_document_id())

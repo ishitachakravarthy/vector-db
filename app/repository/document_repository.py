@@ -30,7 +30,7 @@ class DocumentRepository(BaseRepository):
                 return Document(**data)
             return None
         except Exception as e:
-            logger.error(f"Error getting library: {str(e)}")
+            logger.error(f"Error getting document: {str(e)}")
             raise
 
     def save_document(self, document: Document) -> Document:
