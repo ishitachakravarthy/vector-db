@@ -2,6 +2,7 @@ from app.repository.mongo_repository import MongoRepository
 from app.services.library_service import LibraryService
 from app.services.chunk_service import ChunkService
 from app.services.document_service import DocumentService
+from app.services.index_service import IndexService
 from app.data_models.library import Library
 from app.data_models.document import Document
 from app.data_models.chunk import Chunk
@@ -10,85 +11,131 @@ from uuid import uuid4
 import logging
 from datetime import datetime, timezone
 import uuid
+import numpy as np
+from typing import List
+import cohere
+from app.config import co
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def generate_query_embedding(text: str) -> List[float]:
+    """Generate embedding for search query using Cohere's API."""
+    try:
+        logger.info(f"Generating query embedding for: {text[:100]}...")
+        
+        response = co.embed(
+            texts=[text],
+            model="embed-english-v3.0",
+            input_type="search_document",  # Match the input type used for chunks
+        )
+        
+        if response and response.embeddings:
+            embedding = response.embeddings[0]
+            logger.info(f"Successfully generated query embedding with dimension {len(embedding)}")
+            return embedding
+        else:
+            logger.error("No embedding generated from Cohere API")
+            return None
+    except Exception as e:
+        logger.error(f"Unexpected error generating query embedding: {str(e)}")
+        return None
+
+
 def create_sample_data():
+    """Create sample data for testing."""
     try:
         repo = MongoRepository()
         library_service = LibraryService(repo)
+        index_service = IndexService(repo)
         document_service = DocumentService(repo)
         chunk_service = ChunkService(repo)
-        logger.info("Repository and service initialized")
+        logger.info("Repository and services initialized")
 
+        # Create a library
         library = Library(
-            id=uuid4(),
             title="Sample Library",
+            description="A library for testing",
+            index_type="flat"  # Explicitly set index type to flat
         )
         library = library_service.create_library(library)
-        logger.info(f"Created library with ID: {library.get_library_id()}")
+
+        # Initialize flat index for the library
+        index_service.initialize_index(library.id, "flat")
 
         # Create a document
         document = Document(
-            id=uuid4(),
             library_id=library.id,
-            title="Sample Document",
+            title="Sample Document"
         )
-        logger.info(f"Created document with ID: {document.id}")
+        document = document_service.create_document(document)
 
-        # Create some chunks
-        chunk1 = Chunk(
-            id=uuid4(),
-            document_id=document.id,
-            text="This is the first chunk of text. It contains some sample content.",
-            metadata=ChunkMetadata(
-                section="Introduction",
-                order=1,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
+        # Create chunks with related content
+        chunks = [
+            "Machine learning is a subset of artificial intelligence that focuses on developing systems that can learn from data.",
+            "Deep learning is a type of machine learning that uses neural networks with multiple layers to process complex patterns.",
+            "Natural language processing is a field of AI that helps computers understand and process human language.",
+            "Computer vision is another important area of AI that enables machines to interpret and understand visual information.",
+            "Reinforcement learning is a type of machine learning where agents learn to make decisions by receiving rewards or penalties."
+        ]
+
+        # Create chunks and add their vectors to the index
+        for i, text in enumerate(chunks):
+            chunk = Chunk(
+                document_id=document.id,
+                text=text,
+                metadata=ChunkMetadata(
+                    section="Body",
+                    order=i,
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc)
+                )
             )
-        )
+            # The Chunk model will automatically generate the embedding
+            chunk = chunk_service.create_chunk(chunk)
 
-        chunk2 = Chunk(
-            id=uuid4(),
-            document_id=document.id,
-            text="This is the second chunk. It has different content for testing.",
-            metadata=ChunkMetadata(
-                section="Body",
-                order=2,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
-            )
-        )
-        logger.info(f"Created chunks with IDs: {chunk1.id}, {chunk2.id}")
+            # Add vector to index using the chunk's embedding
+            try:
+                index_service.add_vector(library.id, chunk.id, chunk.embedding)
+            except Exception as e:
+                logger.error(f"Error adding vector to flat index: {str(e)}")
 
-        # TODO Move to service layer
-        # Add chunks to document
-        document.add_chunk(chunk1.get_chunk_id())
-        document.add_chunk(chunk2.get_chunk_id())
-        document_service.save_document(document)
-        chunk_service.create_chunk(chunk1)
-        chunk_service.create_chunk(chunk2)
-        #TODO when adding document, also add associated chunks as something
+        # Get index stats before search
+        stats = index_service.get_index_stats(library.id)
+        logger.info(f"Flat index stats before search: {stats}")
 
-        library.add_document(document.get_document_id())
-        logger.info("Added document and chunks to library")
+        # Perform a search
+        query_text = "Reinforcement learning is a type of machine learning where agents learn to make decisions by receiving rewards or penalties."
+        logger.info(f"Searching for: {query_text}")
 
-        # # Save library
-        library_service.save_library(library)
-        logger.info("Saved library to database")
+        # Generate embedding for the query
+        query_embedding = generate_query_embedding(query_text)
+        if query_embedding is None:
+            logger.error("Failed to generate query embedding")
+            return
 
-        # Verify data was inserted
-        # libraries = service.list_libraries()
-        # logger.info(f"Found {len(libraries)} libraries in database")
-        # if libraries:
-        #     library = libraries[0]
-        #     logger.info(f"Library has {len(library.get_all_docs())} documents")
+        logger.info(f"Generated query embedding with dimension {len(query_embedding)}")
+
+        # Search for similar vectors using flat index
+        try:
+            results = index_service.search_vectors(library.id, query_embedding, k=3)
+            if not results:
+                logger.warning("No results found")
+
+                stats = index_service.get_index_stats(library.id)
+                logger.info(f"Flat index stats after search: {stats}")
+            else:
+                for i, result_id in enumerate(results):
+                    chunk = chunk_service.get_chunk(result_id)
+                    if chunk:
+                        logger.info(f"Result {i + 1}: {chunk.text}")
+
+        except Exception as e:
+            logger.error(f"Error during flat index search: {str(e)}")
 
     except Exception as e:
-        logger.error(f"Error creating sample data: {str(e)}", exc_info=True)
+        logger.error(f"Error creating sample data: {str(e)}")
         raise
 
 if __name__ == "__main__":
