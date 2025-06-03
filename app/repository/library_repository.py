@@ -3,16 +3,15 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 import logging
 from app.data_models.library import Library
-from app.repository.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class LibraryRepository(BaseRepository):
+class LibraryRepository:
     """Collection for libraries."""
 
-    def __init__(self, db: Database, collection_name: str):
-        super().__init__(db, collection_name)
+    def __init__(self, db: Database):
+        self.db = db
         self.libraries: Collection = self.db.libraries
 
     def get_library(self, library_id: UUID) -> Library | None:
@@ -24,7 +23,7 @@ class LibraryRepository(BaseRepository):
     def list_libraries(self) -> list[Library]:
         return [Library(**library) for library in self.libraries.find()]
 
-    def save_library(self, library: Library) -> None:
+    def save_library(self, library: Library) -> Library:
         library_dict = library.model_dump()
         self.libraries.update_one(
             {"_id": library.get_library_id()},

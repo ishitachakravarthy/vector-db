@@ -2,17 +2,16 @@ from uuid import UUID
 from pymongo.collection import Collection
 import logging
 from app.data_models.chunk import Chunk
-from app.repository.base_repository import BaseRepository
 from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
 
 
-class ChunkRepository(BaseRepository):
+class ChunkRepository:
     """Collection for chunks"""
 
-    def __init__(self, db: Database, collection_name: str):
-        super().__init__(db, collection_name)
+    def __init__(self, db: Database):
+        self.db = db
         self.chunks: Collection = self.db.chunks
 
     def get_chunk(self, chunk_id: UUID) -> Chunk:
@@ -24,7 +23,7 @@ class ChunkRepository(BaseRepository):
     def list_chunks(self) -> list[Chunk]:
         return [Chunk(**chunk) for chunk in self.chunks.find()]
 
-    def save_chunk(self, chunk: Chunk) -> None:
+    def save_chunk(self, chunk: Chunk) -> Chunk:
         chunk_dict = chunk.model_dump()
         self.chunks.update_one(
             {"_id": chunk.get_chunk_id()}, {"$set": chunk_dict}, upsert=True

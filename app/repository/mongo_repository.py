@@ -18,9 +18,9 @@ class MongoRepository:
         self._connect()
 
         # Initialize sub-repositories
-        self.library_repo = LibraryRepository(self.db, "libraries")
-        self.document_repo = DocumentRepository(self.db, "documents")
-        self.chunk_repo = ChunkRepository(self.db, "chunks")
+        self.library_repo = LibraryRepository(self.db)
+        self.document_repo = DocumentRepository(self.db)
+        self.chunk_repo = ChunkRepository(self.db)
 
     def _connect(self) -> None:
         try:
