@@ -6,6 +6,8 @@ from app.indexing.hnsw_index import HNSWIndex
 from app.indexing.flat_index import FlatIndex
 from app.indexing.ivf_index import IVFIndex
 
+# Configure logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
@@ -31,26 +33,25 @@ class IndexService:
     def get_index(self, library_id: UUID) -> BaseIndex:
         try:
             index_type = self.library_repository.get_index_type(library_id)
+            index_class = self.get_index_type(index_type)
             index_data = self.library_repository.get_index_data(library_id)
 
             if index_data:
-                index_class = self.get_index_type(index_type)
                 index = index_class.deserialize(index_data)
             else:
-                index = self._create_new_index(library_id, index_type)
+                index = index_class()
                 self.save_new_index(library_id, index_type, index)
-
             return index
         except Exception as e:
             logger.error(f"Error getting/initializing index: {str(e)}")
             raise
 
     def add_vector(
-        self, library_id: UUID, vector_id: UUID, vector: list[float]
+        self, library_id: UUID, chunk_id: UUID, vector: list[float]
     ) -> None:
         try:
             index = self.get_index(library_id)
-            index.add_vector(vector_id, vector)
+            index.add_vector(chunk_id, vector)
             self.save_index_data(library_id, index)
         except Exception as e:
             logger.error(f"Error adding vector to index: {str(e)}")
@@ -69,10 +70,10 @@ class IndexService:
             logger.error(f"Error searching vectors: {str(e)}")
             raise
 
-    def delete_vector(self, library_id: UUID, vector_id: UUID) -> None:
+    def delete_vector(self, library_id: UUID, chunk_id: UUID) -> None:
         try:
             index = self.get_index(library_id)
-            index.delete_vector(vector_id)
+            index.delete_vector(chunk_id)
             self.save_index_data(library_id, index)
         except Exception as e:
             logger.error(f"Error deleting vector from index: {str(e)}")

@@ -12,6 +12,8 @@ class FlatIndex(BaseIndex):
         self.dimension: int | None = None
 
     def _check_vector_dimension(self, vector: list[float]) -> None:
+        if vector is None:
+            raise ValueError("Vector is empty")
         if self.dimension is None:
             self.dimension = len(vector)
         elif len(vector) != self.dimension:
