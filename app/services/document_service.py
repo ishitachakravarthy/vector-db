@@ -20,13 +20,15 @@ class DocumentService:
         return self.document_repository.list_documents()
 
     def save_document(self, document: Document) -> Document:
-        library = self.library_repository.get_library(document.library_id)
         saved_document = self.document_repository.save_document(document)
         try:
-            library.add_document(saved_document.id)
+            library = self.library_repository.get_library(
+                saved_document.get_library_id()
+            )
+            library.add_document(saved_document.get_document_id())
             self.library_repository.save_library(library)
         except Exception as e:
-            logger.error(f"Error creating document: {str(e)}")
+            logger.error(f"Error saving document: {str(e)}")
             raise
         return saved_document
 
@@ -38,10 +40,10 @@ class DocumentService:
             for chunk_id in document.get_all_chunks():
                 self.chunk_repository.delete_chunk(chunk_id)
         except Exception as e:
-            raise ValueError(f"Could not delete chunks to remove document")
+            raise ValueError(f"Could not delete chunks to delete document")
 
         try:
-            library.remove_document(document_id)
+            library.delete_document(document_id)
             self.library_repository.save_library(library)
         except Exception as e:
             raise ValueError(

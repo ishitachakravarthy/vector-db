@@ -19,10 +19,12 @@ class ChunkService:
         return self.chunk_repository.list_chunks()
 
     def save_chunk(self, chunk: Chunk) -> Chunk:
-        document = self.document_repository.get_document(chunk.get_document_id())
         saved_chunk = self.chunk_repository.save_chunk(chunk)
         try:
-            document.add_chunk(saved_chunk.id)
+            document = self.document_repository.get_document(
+                saved_chunk.get_document_id()
+            )
+            document.add_chunk(saved_chunk.get_document_id())
             self.document_repository.save_document(document)
         except Exception as e:
             raise ValueError(
@@ -31,13 +33,13 @@ class ChunkService:
         return saved_chunk
 
     def delete_chunk(self, chunk_id: UUID) -> bool:
-        delete_chunk = self.chunk_repository.get_chunk(chunk_id)
-        new_doc = self.document_repository.get_document(delete_chunk.get_document_id())
+        chunk = self.chunk_repository.get_chunk(chunk_id)
+        document = self.document_repository.get_document(chunk.get_document_id())
         try:
-            new_doc.remove_chunk(chunk_id)
-            self.document_repository.save_document(new_doc)
+            document.delete_chunk(chunk_id)
+            self.document_repository.save_document(document)
         except Exception as e:
             raise ValueError(
-                f"Could not update document with ID {delete_chunk.get_document_id()} to remove chunk"
+                f"Could not update document with ID {chunk.get_document_id()} to remove chunk"
             )
         return self.chunk_repository.delete_chunk(chunk_id)

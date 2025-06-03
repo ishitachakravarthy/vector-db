@@ -30,10 +30,6 @@ class Document(BaseModel):
         if chunk_id not in self.chunks:
             self.chunks.append(chunk_id)
 
-    def remove_chunk(self, chunk_id: UUID) -> None:
-        if chunk_id in self.chunks:
-            self.chunks.remove(chunk_id)
-
     def has_chunk(self, chunk_id: UUID) -> bool:
         return chunk_id in self.chunks
 
