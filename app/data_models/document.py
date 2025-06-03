@@ -18,7 +18,8 @@ class Document(BaseModel):
 
     def get_doc_title(self) -> str:
         return self.title
-
+    def get_library_id(self)-> UUID:
+        return self.library_id
     def get_all_chunks(self) -> list[UUID]:
         return self.chunks
 

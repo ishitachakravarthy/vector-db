@@ -1,4 +1,3 @@
-from typing import List, Optional
 from uuid import UUID
 import logging
 
@@ -10,47 +9,35 @@ logger = logging.getLogger(__name__)
 
 class ChunkService:
     def __init__(self, repository: MongoRepository):
-        self.repository = repository.chunk_repo
-        self.document_repo = repository.document_repo
+        self.chunk_repository = repository.chunk_repo
+        self.document_repository = repository.document_repo
 
-    def create_chunk(self, chunk: Chunk) -> Chunk:
-        """Create a new chunk and add it to its document."""
-        # Verify document exists
-        document = self.document_repo.get_document(chunk.document_id)
-        if not document:
-            raise ValueError(f"Document with ID {chunk.document_id} does not exist")
-        
-        try:
-            # Save the chunk to the database
-            saved_chunk = self.repository.save_chunk(chunk)
-            
-            # Add chunk to document
-            document.add_chunk(saved_chunk.id)
-            self.document_repo.save_document(document)
-            
-            return saved_chunk
-        except Exception as e:
-            logger.error(f"Error creating chunk: {str(e)}")
-            raise
-
-    def get_chunk(self, chunk_id: UUID) -> Optional[Chunk]:
-        """Get a chunk by its ID."""
-        return self.repository.get_chunk(chunk_id)
+    def get_chunk(self, chunk_id: UUID) -> Chunk:
+        return self.chunk_repository.get_chunk(chunk_id)
 
     def list_chunks(self) -> list[Chunk]:
-        """List all chunks."""
-        return self.repository.list_chunks()
+        return self.chunk_repository.list_chunks()
+
+    def save_chunk(self, chunk: Chunk) -> Chunk:
+        document = self.document_repository.get_document(chunk.get_document_id())
+        saved_chunk = self.chunk_repository.save_chunk(chunk)
+        try:
+            document.add_chunk(saved_chunk.id)
+            self.document_repository.save_document(document)
+        except Exception as e:
+            raise ValueError(
+                f"Could not update document with ID {chunk.get_document_id()} with chunk"
+            )
+        return saved_chunk
 
     def delete_chunk(self, chunk_id: UUID) -> bool:
-        """Delete a chunk and remove it from its document."""
-        chunk = self.get_chunk(chunk_id)
-        if not chunk:
-            return False
-            
-        document = self.document_repo.get_document(chunk.document_id)
-        if document:
-            document.remove_chunk(chunk_id)
-            self.document_repo.save_document(document)
-            
-        return self.repository.delete_chunk(chunk_id)
-
+        delete_chunk = self.chunk_repository.get_chunk(chunk_id)
+        new_doc = self.document_repository.get_document(delete_chunk.get_document_id())
+        try:
+            new_doc.remove_chunk(chunk_id)
+            self.document_repository.save_document(new_doc)
+        except Exception as e:
+            raise ValueError(
+                f"Could not update document with ID {delete_chunk.get_document_id()} to remove chunk"
+            )
+        return self.chunk_repository.delete_chunk(chunk_id)

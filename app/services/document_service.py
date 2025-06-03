@@ -1,4 +1,3 @@
-from typing import List, Optional
 from uuid import UUID
 import logging
 
@@ -10,55 +9,42 @@ logger = logging.getLogger(__name__)
 
 class DocumentService:
     def __init__(self, repository: MongoRepository):
-        self.repository = repository.document_repo
-        self.library_repo = repository.library_repo
+        self.document_repository = repository.document_repo
+        self.library_repository = repository.library_repo
+        self.chunk_repository = repository.chunk_repo
 
-    def create_document(self, document: Document) -> Document:
-        """Create a new document and add it to its library."""
-        # Verify library exists
-        library = self.library_repo.get_library(document.library_id)
-        if not library:
-            raise ValueError(f"Library with ID {document.library_id} does not exist")
-        
+    def get_document(self, document_id: UUID) -> Document:
+        return self.document_repository.get_document(document_id)
+
+    def list_documents(self) -> list[Document]:
+        return self.document_repository.list_documents()
+
+    def save_document(self, document: Document) -> Document:
+        library = self.library_repository.get_library(document.library_id)
+        saved_document = self.document_repository.save_document(document)
         try:
-            # Save the document to the database
-            saved_document = self.repository.save_document(document)
-            
-            # Add document to library
             library.add_document(saved_document.id)
-            self.library_repo.save_library(library)
-            
-            return saved_document
+            self.library_repository.save_library(library)
         except Exception as e:
             logger.error(f"Error creating document: {str(e)}")
             raise
-
-    def get_document(self, document_id: UUID) -> Optional[Document]:
-        """Get a document by its ID."""
-        return self.repository.get_document(document_id)
-
-    def list_documents(self) -> list[Document]:
-        """List all documents."""
-        return self.repository.list_documents()
+        return saved_document
 
     def delete_document(self, document_id: UUID) -> bool:
-        """Delete a document and remove it from its library."""
-        document = self.get_document(document_id)
-        if not document:
-            return False
-            
-        library = self.library_repo.get_library(document.library_id)
-        if library:
-            library.remove_document(document_id)
-            self.library_repo.save_library(library)
-            
-        return self.repository.delete_document(document_id)
+        document = self.document_repository.get_document(document_id)
+        library = self.library_repository.get_library(document.get_library_id())
 
-    def save_document(self, document: Document) -> Document:
-        """Save document and create vectors for all chunks."""
         try:
-            saved_document = self.repository.save_document(document)
-            return saved_document
+            for chunk_id in document.get_all_chunks():
+                self.chunk_repository.delete_chunk(chunk_id)
         except Exception as e:
-            logger.error(f"Error saving library: {str(e)}")
-            raise
+            raise ValueError(f"Could not delete chunks to remove document")
+
+        try:
+            library.remove_document(document_id)
+            self.library_repository.save_library(library)
+        except Exception as e:
+            raise ValueError(
+                f"Could not update Library with ID {document.get_library_id()} to remove document"
+            )
+        return self.document_repository.delete_document(document_id)
