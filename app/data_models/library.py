@@ -4,11 +4,12 @@ from pydantic import BaseModel, Field
 
 class Library(BaseModel):
     """A library of documents with vector embeddings."""
+
     id: UUID = Field(default_factory=uuid4)
     title: str
     description: str | None = None
-    index_type: str | None = "flat"
-    index_data: dict| None = None
+    index_type: str | None = None
+    index_data: dict | None = None
     documents: list[UUID] = Field(default_factory=list)
 
     def __init__(self, **data):
@@ -27,10 +28,10 @@ class Library(BaseModel):
     def get_library_description(self) -> str | None:
         return self.description
 
-    def get_index_type(self) -> str:
+    def get_index_type(self) -> str | None:
         return self.index_type
 
-    def get_index_data(self) -> dict:
+    def get_index_data(self) -> dict | None:
         return self.index_data
 
     def get_all_doc_ids(self) -> list[UUID]:

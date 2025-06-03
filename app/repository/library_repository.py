@@ -59,6 +59,10 @@ class LibraryRepository:
         library = self.get_library(library_id)
         return library.index_type if library else None
 
+    def get_index_data(self, library_id: UUID) -> dict | None:
+        library = self.get_library(library_id)
+        return library.index_data if library else None
+
     def update_index_data(self, library_id: UUID, index_data: dict) -> None:
         library = self.get_library(library_id)
         if not library:
