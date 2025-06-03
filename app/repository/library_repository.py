@@ -15,26 +15,44 @@ class LibraryRepository:
         self.libraries: Collection = self.db.libraries
 
     def get_library(self, library_id: UUID) -> Library | None:
-        data = self.libraries.find_one({"_id": library_id})
-        if data:
-            return Library(**data)
-        return None
+        try:
+            data = self.libraries.find_one({"_id": library_id})
+            if data:
+                return Library(**data)
+            raise ValueError(f"Library with ID {library_id} not found")
+        except Exception as e:
+            raise ValueError("Database connection failed")
 
     def list_libraries(self) -> list[Library]:
-        return [Library(**library) for library in self.libraries.find()]
+        try:
+            return [Library(**library) for library in self.libraries.find()]
+        except Exception as e:
+            raise ValueError("Database connection failed")
 
     def save_library(self, library: Library) -> Library:
-        library_dict = library.model_dump()
-        self.libraries.update_one(
-            {"_id": library.get_library_id()},
-            {"$set": library_dict},
-            upsert=True,
-        )
-        return library
+        try:
+            library_dict = library.model_dump()
+            result = self.libraries.update_one(
+                {"_id": library.get_library_id()},
+                {"$set": library_dict},
+                upsert=True,
+            )
+            if not (result.matched_count == 1 or result.upserted_id is not None):
+                raise ValueError(
+                    f"Failed to save Library with ID {library.get_library_id()} to database"
+                )
+            return library
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
 
     def delete_library(self, library_id: UUID) -> bool:
-        result = self.libraries.delete_one({"_id": library_id})
-        return result.deleted_count > 0
+        try:
+            result = self.libraries.delete_one({"_id": library_id})
+            if result.deleted_count == 0:
+                raise ValueError(f"Library with ID {library_id} not found")
+            return True
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
 
     # Indexing methods
     def get_index_type(self, library_id: UUID) -> str | None:

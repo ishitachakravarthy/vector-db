@@ -15,21 +15,41 @@ class DocumentRepository:
         self.documents: Collection = self.db.documents
 
     def get_document(self, document_id: UUID) -> Document | None:
-        data = self.documents.find_one({"_id": document_id})
-        if data:
-            return Document(**data)
-        return None
+        try:
+            data = self.documents.find_one({"_id": document_id})
+            if data:
+                return Document(**data)
+            raise ValueError(f"Document with ID {document_id} not found")
+        except Exception as e:
+            raise ValueError("Database connection failed")
 
     def list_documents(self) -> list[Document]:
-        return [Document(**doc) for doc in self.documents.find()]
+        try:
+            return [Document(**doc) for doc in self.documents.find()]
+        except Exception as e:
+            raise ValueError("Database connection failed")
 
     def save_document(self, document: Document) -> Document:
-        document_dict = document.model_dump()
-        self.documents.update_one(
-            {"_id": document.get_document_id()}, {"$set": document_dict}, upsert=True
-        )
-        return document
+        try:
+            document_dict = document.model_dump()
+            result = self.documents.update_one(
+                {"_id": document.get_document_id()},
+                {"$set": document_dict},
+                upsert=True,
+            )
+            if not (result.matched_count == 1 or result.upserted_id is not None):
+                raise ValueError(
+                    f"Failed to save Documebt with ID {document.get_document_id()} to database"
+                )
+            return document
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
 
     def delete_document(self, document_id: UUID) -> bool:
-        result = self.documents.delete_one({"_id": document_id})
-        return result.deleted_count > 0
+        try:
+            result = self.documents.delete_one({"_id": document_id})
+            if result.deleted_count == 0:
+                raise ValueError(f"Document with ID {document_id} not found")
+            return True
+        except Exception as e:
+            raise ValueError("Database connection failed") from e

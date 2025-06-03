@@ -15,21 +15,39 @@ class ChunkRepository:
         self.chunks: Collection = self.db.chunks
 
     def get_chunk(self, chunk_id: UUID) -> Chunk:
-        data = self.chunks.find_one({"_id": chunk_id})
-        if data:
-            return Chunk(**data)
-        raise ValueError(f"Chunk with ID {chunk_id} not found")
+        try:
+            data = self.chunks.find_one({"_id": chunk_id})
+            if data:
+                return Chunk(**data)
+            raise ValueError(f"Chunk with ID {chunk_id} not found in database")
+        except Exception as e:
+            raise ValueError("Database connection failed")
 
     def list_chunks(self) -> list[Chunk]:
-        return [Chunk(**chunk) for chunk in self.chunks.find()]
+        try:
+            return [Chunk(**chunk) for chunk in self.chunks.find()]
+        except Exception as e:
+            raise ValueError("Database connection failed")
 
     def save_chunk(self, chunk: Chunk) -> Chunk:
-        chunk_dict = chunk.model_dump()
-        self.chunks.update_one(
-            {"_id": chunk.get_chunk_id()}, {"$set": chunk_dict}, upsert=True
-        )
-        return chunk
+        try:
+            chunk_dict = chunk.model_dump()
+            result = self.chunks.update_one(
+                {"_id": chunk.get_chunk_id()}, {"$set": chunk_dict}, upsert=True
+            )
+            if not (result.matched_count == 1 or result.upserted_id is not None):
+                raise ValueError(
+                    f"Failed to save chunk with ID {chunk.get_chunk_id()} to database"
+                )
+            return chunk
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
 
     def delete_chunk(self, chunk_id: UUID) -> bool:
-        result = self.chunks.delete_one({"_id": chunk_id})
-        return result.deleted_count > 0
+        try:
+            result = self.chunks.delete_one({"_id": chunk_id})
+            if result.deleted_count == 0:
+                raise ValueError(f"Chunk with ID {chunk_id} not found in database")
+            return True
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
