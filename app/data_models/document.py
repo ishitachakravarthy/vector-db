@@ -1,12 +1,10 @@
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
-from app.data_models.chunk import Chunk
-
 class Document(BaseModel):
     """A document containing multiple chunks of text."""
     id: UUID = Field(default_factory=uuid4)
-    library_id: UUID  # Required field to link document to library
+    library_id: UUID
     title: str
     chunks: list[UUID] = Field(default_factory=list)
 

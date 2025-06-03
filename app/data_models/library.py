@@ -1,20 +1,14 @@
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
-import numpy as np
-from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
 
-from app.data_models.document import Document
-from app.data_models.chunk import Chunk
 
 class Library(BaseModel):
     """A library of documents with vector embeddings."""
-
     id: UUID = Field(default_factory=uuid4)
     title: str
-    description: Optional[str] = None
-    index_type: str|None = "flat"  # Default to ball tree for high-dimensional spaces
-    index_data: Optional[Dict[str, Any]] = None  # Serialized index data
+    description: str | None = None
+    index_type: str | None = "flat"
+    index_data: dict| None = None
     documents: list[UUID] = Field(default_factory=list)
 
     def __init__(self, **data):
@@ -30,20 +24,17 @@ class Library(BaseModel):
     def get_library_title(self) -> str:
         return self.title
 
-    def get_library_description(self) -> Optional[str]:
+    def get_library_description(self) -> str | None:
         return self.description
 
     def get_index_type(self) -> str:
         return self.index_type
 
-    def get_index_data(self) -> Optional[Dict[str, Any]]:
+    def get_index_data(self) -> dict:
         return self.index_data
 
     def get_all_doc_ids(self) -> list[UUID]:
         return self.documents
-
-    def search_document(self, document_id: UUID) -> Document | None:
-        return self.documents.get(document_id)
 
     def update_library_title(self, new_title: str) -> None:
         self.title = new_title
@@ -53,9 +44,9 @@ class Library(BaseModel):
 
     def update_index_type(self, new_index_type: str) -> None:
         self.index_type = new_index_type
+        # TODO some operation on reset index data
 
-    def update_index_data(self, new_index_data: Dict[str, Any]) -> None:
-        """Update the index data and ensure consistency."""
+    def update_index_data(self, new_index_data: dict) -> None:
         self.index_data = new_index_data
 
     def add_document(self, document_id: UUID) -> None:
@@ -64,19 +55,9 @@ class Library(BaseModel):
 
     def delete_document(self, document_id: UUID) -> bool:
         if document_id in self.documents:
-            self.documents.remove(document_id)
+            self.chunks.remove(document_id)
             return True
         return False
 
     def delete_all_documents(self) -> None:
         self.documents = []
-
-    def add_chunk(self, document: Document) -> None:
-        self.documents[document.get_doc_id()] = document
-
-    def delete_chunk(self, chunk_id: UUID) -> bool:
-        document = self.documents.get(chunk_id)
-        if document:
-            document.delete_chunk(chunk_id)
-            return True
-        return False
