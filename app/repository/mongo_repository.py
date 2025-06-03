@@ -8,6 +8,7 @@ from app.repository.chunk_repository import ChunkRepository
 
 logger = logging.getLogger(__name__)
 
+
 class MongoRepository:
     """Main repository class that coordinates all other repositories."""
 
@@ -15,25 +16,22 @@ class MongoRepository:
         self.client: MongoClient = None
         self.db: Database = None
         self._connect()
-        
-        # Initialize sub-repositories with transaction support
+
+        # Initialize sub-repositories
         self.library_repo = LibraryRepository(self.db, "libraries")
         self.document_repo = DocumentRepository(self.db, "documents")
         self.chunk_repo = ChunkRepository(self.db, "chunks")
-    
+
     def _connect(self) -> None:
-        """Connect to MongoDB."""
         try:
-            # Configure MongoDB to use standard UUID representation
             self.client = MongoClient(MONGODB_URL, uuidRepresentation="standard")
             self.db = self.client[MONGODB_DB_NAME]
             logger.info("Connected to MongoDB")
         except Exception as e:
             logger.error(f"Error connecting to MongoDB: {str(e)}")
             raise
-    
+
     def close(self) -> None:
-        """Close MongoDB connection."""
         if self.client:
             self.client.close()
             self.client = None
