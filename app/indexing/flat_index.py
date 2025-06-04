@@ -11,18 +11,7 @@ class FlatIndex(BaseIndex):
         self.vectors: dict[UUID, list[float]] = {}
         self.dimension: int | None = None
 
-    def _check_vector_dimension(self, vector: list[float]) -> None:
-        if vector is None:
-            raise ValueError("Vector is empty")
-        if self.dimension is None:
-            self.dimension = len(vector)
-        elif len(vector) != self.dimension:
-            raise ValueError(
-                f"Vector dimension {len(vector)} does not match index dimension {self.dimension}"
-            )
-
     def add_vector(self, chunk_id: UUID, vector: list[float]) -> None:
-        self._check_vector_dimension(vector)
         self.vectors[chunk_id] = vector
 
     def delete_vector(self, chunk_id: UUID) -> None:
@@ -32,7 +21,6 @@ class FlatIndex(BaseIndex):
     def search(self, query_vector: list[float], k: int = 5) -> list[UUID]:
         if not self.vectors:
             return []
-        self._check_vector_dimension(query_vector)
         similarities = []
         for chunk_id, vector in self.vectors.items():
             similarity = self._cosine_similarity(query_vector, vector)
@@ -48,12 +36,10 @@ class FlatIndex(BaseIndex):
         }
 
     def serialize(self) -> dict[str, any]:
-        """Serialize the index data for strage."""
         try:
             vectors_dict = {
                 str(vector_id): vector for vector_id, vector in self.vectors.items()
             }
-
             return {
                 "type": "flat",
                 "vectors": vectors_dict,
