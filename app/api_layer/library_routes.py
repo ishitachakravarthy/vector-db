@@ -10,13 +10,12 @@ library_router = APIRouter(prefix="/library")
 def get_library_service(repo: MongoRepository = Depends()):
     return LibraryService(repo)
 
-# TODO: TESTING
 @library_router.post("/", response_model=LibraryResponse)
 def create_library(
     library: LibraryCreate,
     service: LibraryService = Depends(get_library_service)
 ):
-    return service.save_library(library)
+    return service.create_library(library)
 
 @library_router.get("/", response_model=List[LibraryResponse])
 def list_libraries(
@@ -40,7 +39,7 @@ def update_library(
     library_update: LibraryUpdate, 
     service: LibraryService = Depends(get_library_service)
 ):
-    library = service.save_library(library_update)
+    library = service.update_library(library_id, library_update)
     if not library:
         raise HTTPException(status_code=404, detail="Library not found")
     return library
@@ -50,6 +49,7 @@ def delete_library(
     library_id: UUID,
     service: LibraryService = Depends(get_library_service)
 ):
+    """Delete a library."""
     success = service.delete_library(library_id)
     if not success:
         raise HTTPException(status_code=404, detail="Library not found")

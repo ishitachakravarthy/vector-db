@@ -10,7 +10,7 @@ class Document(BaseModel):
     library_id: UUID
     title: str
     chunks: list[UUID] = Field(default_factory=list)
-    metadata: DocumentMetadata
+    metadata: DocumentMetadata = Field(default_factory=DocumentMetadata)
 
     def __init__(self, **data):
         super().__init__(**data)

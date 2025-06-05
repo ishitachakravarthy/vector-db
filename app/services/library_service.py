@@ -2,7 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 import logging
 
-from app.data_models.library import Library
+from app.data_models.library import Library, LibraryCreate, LibraryUpdate
 from app.repository.mongo_repository import MongoRepository
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,32 @@ class LibraryService:
 
     def list_libraries(self) -> List[Library]:
         return self.library_repository.list_libraries()
+
+    def create_library(self, library_create: LibraryCreate) -> Library:
+        library = Library(
+            title=library_create.title,
+            description=library_create.description,
+            index_type=library_create.index_type,
+            metadata=library_create.metadata
+        )
+        return self.save_library(library)
+
+    # TODO: Redo in repository
+    def update_library(self, library_id: UUID, library_update: LibraryUpdate) -> Library | None:
+        library = self.get_library(library_id)
+        if not library:
+            return None
+
+        if library_update.title is not None:
+            library.update_library_title(library_update.title)
+        if library_update.description is not None:
+            library.update_library_description(library_update.description)
+        if library_update.index_type is not None:
+            library.update_index_type(library_update.index_type)
+        if library_update.metadata is not None:
+            library.update_metadata(library_update.metadata)
+
+        return self.save_library(library)
 
     def save_library(self, library: Library) -> Library:
         saved_library = self.library_repository.save_library(library)

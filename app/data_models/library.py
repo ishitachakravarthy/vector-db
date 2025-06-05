@@ -8,6 +8,7 @@ class LibraryBase(BaseModel):
     index_type: str | None = Field(
         None, description="Type of index to use (flat, ivf or hnsw)"
     )
+
 class LibraryCreate(LibraryBase):
     metadata: LibraryMetadata | None = None
 
@@ -32,18 +33,9 @@ class Library(BaseModel):
     title: str
     description: str | None = None
     index_type: str | None = None
-    index_data: dict | None = None
+    index_data: dict = Field(default_factory=dict)
     documents: list[UUID] = Field(default_factory=list)
-    metadata: LibraryMetadata | None = None
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        if not self.documents:
-            self.documents = []
-        if not self.index_data:
-            self.index_data = {}
-        if not self.metadata:
-            self.metadata = LibraryMetadata()
+    metadata: LibraryMetadata = Field(default_factory=LibraryMetadata)
 
     def get_library_id(self) -> UUID:
         return self.id
@@ -57,56 +49,48 @@ class Library(BaseModel):
     def get_index_type(self) -> str | None:
         return self.index_type
 
-    def get_index_data(self) -> dict | None:
+    def get_index_data(self) -> dict:
         return self.index_data
 
     def get_all_doc_ids(self) -> list[UUID]:
         return self.documents
 
-    def get_metadata(self) -> LibraryMetadata | None:
+    def get_metadata(self) -> LibraryMetadata:
         return self.metadata
 
     def update_library_title(self, new_title: str) -> None:
         self.title = new_title
-        if self.metadata:
-            self.metadata.update_timestamp()
+        self.metadata.update_timestamp()
 
     def update_library_description(self, new_description: str) -> None:
         self.description = new_description
-        if self.metadata:
-            self.metadata.update_timestamp()
+        self.metadata.update_timestamp()
 
     def update_index_type(self, new_index_type: str) -> None:
         self.index_type = new_index_type
-        if self.metadata:
-            self.metadata.update_timestamp()
+        self.metadata.update_timestamp()
         # TODO some operation on reset index data
 
     def update_index_data(self, new_index_data: dict) -> None:
         self.index_data = new_index_data
-        if self.metadata:
-            self.metadata.update_timestamp()
+        self.metadata.update_timestamp()
 
     def update_metadata(self, new_metadata: LibraryMetadata) -> None:
         self.metadata = new_metadata
-        if self.metadata:
-            self.metadata.update_timestamp()
+        self.metadata.update_timestamp()
 
     def add_document(self, document_id: UUID) -> None:
         if document_id not in self.documents:
             self.documents.append(document_id)
-            if self.metadata:
-                self.metadata.update_timestamp()
+            self.metadata.update_timestamp()
 
     def delete_document(self, document_id: UUID) -> bool:
         if document_id in self.documents:
             self.documents.remove(document_id)
-            if self.metadata:
-                self.metadata.update_timestamp()
+            self.metadata.update_timestamp()
             return True
         return False
 
     def delete_all_documents(self) -> None:
         self.documents = []
-        if self.metadata:
-            self.metadata.update_timestamp()
+        self.metadata.update_timestamp()
