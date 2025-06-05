@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from uuid import UUID
 from app.data_models.library import LibraryCreate, LibraryUpdate, LibraryResponse
@@ -30,7 +29,7 @@ def create_library(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create library: {str(e)}")
 
-@library_router.get("/", response_model=List[LibraryResponse])
+@library_router.get("/list", response_model=List[LibraryResponse])
 def list_libraries(
     service: LibraryService = Depends(get_library_service)
 ):

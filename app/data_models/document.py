@@ -2,6 +2,33 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 from app.data_models.metadata import DocumentMetadata
 
+from typing import Optional, Dict, Any
+from datetime import datetime
+
+
+class DocumentBase(BaseModel):
+    """Base model for document data."""
+    title: str = Field(..., description="Title of the document")
+    library_id: UUID = Field(..., description="Unique identifier for the library")
+
+class DocumentCreate(DocumentBase):
+    chunks: list[UUID] = Field(default_factory=list)
+    metadata: DocumentMetadata | None = None
+    pass
+
+class DocumentUpdate(BaseModel):
+    title: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class DocumentResponse(DocumentBase):
+    id: UUID = Field(..., description="Unique identifier for the document")
+    chunks: list[UUID] = Field(
+        default_factory=list, description="List of chunk IDs in the document"
+    )
+    metadata: DocumentMetadata | None = Field(None, description="Document metadata")
+    class Config:
+        from_attributes = True
+
 
 class Document(BaseModel):
     """A document containing multiple chunks of text."""
@@ -17,7 +44,7 @@ class Document(BaseModel):
         if not self.chunks:
             self.chunks = []
         if not self.metadata:
-            self.metadata = DocumentMetadata()
+            self.metadata = {}
 
     def get_document_id(self) -> UUID:
         return self.id
