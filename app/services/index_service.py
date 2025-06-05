@@ -5,6 +5,9 @@ from app.indexing.base_index import BaseIndex
 from app.indexing.hnsw_index import HNSWIndex
 from app.indexing.flat_index import FlatIndex
 from app.indexing.ivf_index import IVFIndex
+from app.data_models.chunk import Chunk
+import cohere
+from app.config import co
 
 # Configure logging
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -18,6 +21,7 @@ class IndexService:
 
     def __init__(self, repository: MongoRepository):
         self.library_repository = repository.library_repo
+        self.chunk_repository = repository.chunk_repo
 
     def get_index_class(self, index_type: str) -> type[BaseIndex]:
         if index_type not in self.INDEX_TYPES:
@@ -40,6 +44,8 @@ class IndexService:
 
     def add_vector(self, library_id: UUID, chunk_id: UUID, vector: list[float]) -> None:
         try:
+            self.chunk_repository.get_chunk(chunk_id)
+
             index = self.get_index(library_id)
             index.add_vector(chunk_id, vector)
             self.save_new_index(library_id, None, index)
@@ -58,6 +64,18 @@ class IndexService:
         except Exception as e:
             logger.error(f"Error searching vectors: {str(e)}")
             raise
+
+    def search(self, library_id: UUID, query_text: str, k: int = 3) -> list[Chunk]:
+        try:
+            # Verify library exists
+            if not self.library_repository.get_library(library_id):
+                raise ValueError(f"Library {library_id} not found")
+
+            query_embedding = self.generate_query_embedding(query_text)
+            results = self.search_vectors(library_id, query_embedding, k=k)
+            return [self.chunk_repository.get_chunk(chunk_id) for chunk_id in results]
+        except ValueError as e:
+            raise ValueError(f"Validation error in search: {str(e)}")
 
     def delete_vector(self, library_id: UUID, chunk_id: UUID) -> None:
         try:
@@ -82,3 +100,18 @@ class IndexService:
             self.library_repository.update_index_type(library_id, index_type)
         if index:
             self.library_repository.update_index_data(library_id, index.serialize())
+
+    def generate_query_embedding(self, text: str) -> list[float] | None:
+        try:
+            response = co.embed(
+                texts=[text],
+                model="embed-english-v3.0",
+                input_type="search_document",
+            )
+            if response and response.embeddings:
+                embedding = response.embeddings[0]
+                return embedding
+            else:
+                raise ValueError("No embedding generated from Cohere API")
+        except Exception as e:
+            raise ValueError(f"Error generating query embedding: {str(e)}")
