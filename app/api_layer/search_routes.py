@@ -1,6 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
-from typing import List
-from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException
 from app.data_models.search import SearchQuery
 from app.data_models.chunk import Chunk
 from app.services.index_service import IndexService
@@ -16,7 +14,7 @@ def get_index_service(repo: MongoRepository = Depends()):
     return IndexService(repo)
 
 
-@search_router.post("/", response_model=List[Chunk])
+@search_router.post("/", response_model=list[Chunk])
 def search(
     query: SearchQuery,
     index_service: IndexService = Depends(get_index_service),

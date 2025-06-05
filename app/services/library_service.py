@@ -25,14 +25,16 @@ class LibraryService:
         return saved_library
 
     def delete_library(self, library_id: UUID) -> bool:
+        # First check if library exists
         library = self.library_repository.get_library(library_id)
-        try:
-            for document_id in library.get_all_doc_ids():
-                document = self.document_repository.get_document(document_id)
+        if not library:
+            return False
+        for document_id in library.get_all_doc_ids():
+            document = self.document_repository.get_document(document_id)
+            if document:
                 for chunk_id in document.get_all_chunks():
                     self.chunk_repository.delete_chunk(chunk_id)
-                self.document_repository.delete_document(document_id)
-        except Exception as e:
-            raise ValueError(f"Could not delete documents and chunks to delete library")
+            self.document_repository.delete_document(document_id)
 
-        return self.repository.delete_library(library_id)
+        # Finally delete the library
+        return self.library_repository.delete_library(library_id)

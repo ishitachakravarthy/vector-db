@@ -21,13 +21,13 @@ class LibraryRepository:
                 return Library(**data)
             raise ValueError(f"Library with ID {library_id} not found")
         except Exception as e:
-            raise ValueError("Database connection failed")
+            raise ValueError("Library database connection failed")
 
     def list_libraries(self) -> list[Library]:
         try:
             return [Library(**library) for library in self.libraries.find()]
         except Exception as e:
-            raise ValueError("Database connection failed")
+            raise ValueError("Library database connection failed")
 
     def save_library(self, library: Library) -> Library:
         try:
@@ -43,7 +43,7 @@ class LibraryRepository:
                 )
             return library
         except Exception as e:
-            raise ValueError("Database connection failed") from e
+            raise ValueError("Library database connection failed") from e
 
     def delete_library(self, library_id: UUID) -> bool:
         try:
@@ -52,7 +52,7 @@ class LibraryRepository:
                 raise ValueError(f"Library with ID {library_id} not found")
             return True
         except Exception as e:
-            raise ValueError("Database connection failed") from e
+            raise ValueError("Library database connection failed") from e
 
     # Indexing methods
     def get_index_type(self, library_id: UUID) -> str | None:
