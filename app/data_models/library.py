@@ -69,7 +69,7 @@ class Library(BaseModel):
     def update_index_type(self, new_index_type: str) -> None:
         self.index_type = new_index_type
         self.metadata.update_timestamp()
-        # TODO some operation on reset index data
+        self.index_data = {}
 
     def update_index_data(self, new_index_data: dict) -> None:
         self.index_data = new_index_data
