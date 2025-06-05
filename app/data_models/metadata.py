@@ -32,7 +32,7 @@ class ChunkMetadata(BaseMetadata):
 
 class DocumentMetadata(BaseMetadata):
     """Metadata specific to documents."""
-    author: str = Field(..., description="Author of the document")
+    author: str | None = Field(default=None, description="Author of the document")
     status: str = Field(default="draft", description="Status of the document (draft, published, archived)")
 
     def get_type(self) -> str:

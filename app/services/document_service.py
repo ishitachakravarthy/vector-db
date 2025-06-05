@@ -1,7 +1,8 @@
 from uuid import UUID
 import logging
+from typing import Optional
 
-from app.data_models.document import Document
+from app.data_models.document import Document, DocumentCreate, DocumentUpdate
 from app.repository.mongo_repository import MongoRepository
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,26 @@ class DocumentService:
 
     def list_documents(self) -> list[Document]:
         return self.document_repository.list_documents()
+
+    def create_document(self, document_create: DocumentCreate) -> Document:
+        document = Document(
+            title=document_create.title,
+            library_id=document_create.library_id,
+            metadata=document_create.metadata
+        )
+        return self.save_document(document)
+
+    def update_document(self, document_id: UUID, document_update: DocumentUpdate) -> Optional[Document]:
+        document = self.get_document(document_id)
+        if not document:
+            return None
+
+        if document_update.title is not None:
+            document.update_title(document_update.title)
+        if document_update.metadata is not None:
+            document.update_metadata(document_update.metadata)
+
+        return self.save_document(document)
 
     def save_document(self, document: Document) -> Document:
         saved_document = self.document_repository.save_document(document)

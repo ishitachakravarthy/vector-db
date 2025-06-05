@@ -11,21 +11,26 @@ class DocumentBase(BaseModel):
     title: str = Field(..., description="Title of the document")
     library_id: UUID = Field(..., description="Unique identifier for the library")
 
+
 class DocumentCreate(DocumentBase):
-    chunks: list[UUID] = Field(default_factory=list)
-    metadata: DocumentMetadata | None = None
-    pass
+    """Model for creating a new document."""
+    metadata: Optional[DocumentMetadata] = Field(default_factory=DocumentMetadata)
+
 
 class DocumentUpdate(BaseModel):
+    """Model for updating an existing document."""
     title: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[DocumentMetadata] = None
+
 
 class DocumentResponse(DocumentBase):
+    """Model for document responses."""
     id: UUID = Field(..., description="Unique identifier for the document")
     chunks: list[UUID] = Field(
         default_factory=list, description="List of chunk IDs in the document"
     )
     metadata: DocumentMetadata | None = Field(None, description="Document metadata")
+    
     class Config:
         from_attributes = True
 
