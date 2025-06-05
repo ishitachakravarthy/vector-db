@@ -1,5 +1,6 @@
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
+from app.data_models.metadata import LibraryMetadata
 
 
 class Library(BaseModel):
@@ -11,6 +12,7 @@ class Library(BaseModel):
     index_type: str | None = None
     index_data: dict | None = None
     documents: list[UUID] = Field(default_factory=list)
+    metadata: LibraryMetadata
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -18,6 +20,8 @@ class Library(BaseModel):
             self.documents = []
         if not self.index_data:
             self.index_data = {}
+        if not self.metadata:
+            self.metadata = LibraryMetadata()
 
     def get_library_id(self) -> UUID:
         return self.id
@@ -37,28 +41,42 @@ class Library(BaseModel):
     def get_all_doc_ids(self) -> list[UUID]:
         return self.documents
 
+    def get_metadata(self) -> LibraryMetadata:
+        return self.metadata
+
     def update_library_title(self, new_title: str) -> None:
         self.title = new_title
+        self.metadata.update_timestamp()
 
     def update_library_description(self, new_description: str) -> None:
         self.description = new_description
+        self.metadata.update_timestamp()
 
     def update_index_type(self, new_index_type: str) -> None:
         self.index_type = new_index_type
+        self.metadata.update_timestamp()
         # TODO some operation on reset index data
 
     def update_index_data(self, new_index_data: dict) -> None:
         self.index_data = new_index_data
+        self.metadata.update_timestamp()
+
+    def update_metadata(self, new_metadata: LibraryMetadata) -> None:
+        self.metadata = new_metadata
+        self.metadata.update_timestamp()
 
     def add_document(self, document_id: UUID) -> None:
         if document_id not in self.documents:
             self.documents.append(document_id)
+            self.metadata.update_timestamp()
 
     def delete_document(self, document_id: UUID) -> bool:
         if document_id in self.documents:
-            self.chunks.remove(document_id)
+            self.documents.remove(document_id)
+            self.metadata.update_timestamp()
             return True
         return False
 
     def delete_all_documents(self) -> None:
         self.documents = []
+        self.metadata.update_timestamp()

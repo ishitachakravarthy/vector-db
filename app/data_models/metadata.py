@@ -12,12 +12,10 @@ class BaseMetadata(ABC, BaseModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="When the item was last updated",
     )
-    version: int = Field(default=1, description="Version number of the item")
 
     def update_timestamp(self) -> None:
         """Update the updated_at timestamp."""
         self.updated_at = datetime.now(timezone.utc)
-        self.version += 1
 
     @abstractmethod
     def get_type(self) -> str:
