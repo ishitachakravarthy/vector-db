@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 class FlatIndex(BaseIndex):
     def __init__(self):
         self.vectors: dict[UUID, list[float]] = {}
-        self.dimension: int | None = None
 
     def add_vector(self, chunk_id: UUID, vector: list[float]) -> None:
         self.vectors[chunk_id] = vector
@@ -32,7 +31,6 @@ class FlatIndex(BaseIndex):
         return {
             "type": "flat",
             "num_vectors": len(self.vectors),
-            "dimension": self.dimension,
         }
 
     def serialize(self) -> dict[str, any]:
@@ -43,7 +41,6 @@ class FlatIndex(BaseIndex):
             return {
                 "type": "flat",
                 "vectors": vectors_dict,
-                "dimension": self.dimension,
             }
         except Exception as e:
             logger.error(f"Error serializing Flat index: {str(e)}")
@@ -51,7 +48,10 @@ class FlatIndex(BaseIndex):
 
     @classmethod
     def deserialize(cls, data: dict[str, any]) -> "FlatIndex":
-        index = cls()
-        index.dimension = data["dimension"]
-        index.vectors = {UUID(k): v for k, v in data["vectors"].items()}
-        return index
+        try:
+            index = cls()
+            index.vectors = {UUID(k): v for k, v in data["vectors"].items()}
+            return index
+        except Exception as e:
+            logger.error(f"Error deserializing Flat index: {str(e)}")
+            raise
