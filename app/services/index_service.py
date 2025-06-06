@@ -40,7 +40,7 @@ class IndexService:
             library_id
         )
 
-    def add_vector(self, library_id: UUID, vector_id: UUID, vector: List[float]) -> bool:
+    def add_vector(self, library_id: UUID, vector_id: UUID, vector: list[float]) -> bool:
         library = self.get_index(library_id)
         if not library:
             return False
@@ -59,7 +59,7 @@ class IndexService:
             add_vector_operation
         )
 
-    def search_vectors(self, library_id: UUID, query_vector: List[float], k: int = 5) -> List[UUID]:
+    def search_vectors(self, library_id: UUID, query_vector: list[float], k: int = 5) -> list[UUID]:
         library = self.get_index(library_id)
         if not library:
             return []
