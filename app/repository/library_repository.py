@@ -20,14 +20,14 @@ class LibraryRepository:
             if not data:
                 raise ValueError(f"Library with ID {library_id} not found")
             return Library(**data)
-        except Exception as e:
-            raise
+        except Exception:
+            raise ValueError("Database error: Failed to retrieve library")
 
     def list_libraries(self) -> list[Library]:
         try:
             return [Library(**library) for library in self.libraries.find()]
-        except Exception as e:
-            raise ValueError("Database connection failed")
+        except Exception:
+            raise ValueError("Database error: Failed to list libraries")
 
     def save_library(self, library: Library) -> Library:
         try:
@@ -39,10 +39,10 @@ class LibraryRepository:
                 return_document=True
             )
             if not result:
-                raise ValueError(f"Failed to save Library with ID {library.get_library_id()}")
+                raise ValueError(f"Failed to save library with ID {library.get_library_id()}")
             return Library(**result)
-        except Exception as e:
-            raise
+        except Exception:
+            raise ValueError("Database error: Failed to save library")
 
     def update_library(self, library_id: UUID, library_update: LibraryUpdate) -> Library:
         try:
@@ -56,8 +56,8 @@ class LibraryRepository:
             if library_update.get_metadata() is not None:
                 update_library.update_metadata(library_update.get_metadata())
             return self.save_library(update_library)
-        except Exception as e:
-            raise ValueError("Database connection failed") from e
+        except Exception:
+            raise ValueError("Database error: Failed to update library")
 
     def delete_library(self, library_id: UUID) -> bool:
         try:
@@ -65,8 +65,8 @@ class LibraryRepository:
             if result.deleted_count == 0:
                 raise ValueError(f"Library with ID {library_id} not found")
             return True
-        except Exception as e:
-            raise
+        except Exception:
+            raise ValueError("Database error: Failed to delete library")
 
     # Indexing methods
     def get_index_type(self, library_id: UUID) -> str | None:
@@ -86,8 +86,8 @@ class LibraryRepository:
             )
             if not result:
                 raise ValueError(f"Library with ID {library_id} not found")
-        except Exception as e:
-            raise
+        except Exception:
+            raise ValueError("Database error: Failed to update index data")
 
     def update_index_type(self, library_id: UUID, index_type: str) -> None:
         try:
@@ -98,5 +98,5 @@ class LibraryRepository:
             )
             if not result:
                 raise ValueError(f"Library with ID {library_id} not found")
-        except Exception as e:
-            raise
+        except Exception:
+            raise ValueError("Database error: Failed to update index type")

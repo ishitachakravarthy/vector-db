@@ -20,14 +20,14 @@ class DocumentRepository:
             if data:
                 return Document(**data)
             raise ValueError(f"Document with ID {document_id} not found")
-        except Exception as e:
-            raise ValueError("Database connection failed")
+        except Exception:
+            raise ValueError("Database error: Failed to retrieve document")
 
     def list_documents(self) -> list[Document]:
         try:
             return [Document(**doc) for doc in self.documents.find()]
-        except Exception as e:
-            raise ValueError("Database connection failed")
+        except Exception:
+            raise ValueError("Database error: Failed to list documents")
 
     def save_document(self, document: Document) -> Document:
         try:
@@ -38,12 +38,10 @@ class DocumentRepository:
                 upsert=True,
             )
             if not (result.matched_count == 1 or result.upserted_id is not None):
-                raise ValueError(
-                    f"Failed to save Documebt with ID {document.get_document_id()} to database"
-                )
+                raise ValueError(f"Failed to save document with ID {document.get_document_id()}")
             return document
-        except Exception as e:
-            raise ValueError("Database connection failed") from e
+        except Exception:
+            raise ValueError("Database error: Failed to save document")
 
     def update_document(self, document_id: UUID, document_update: DocumentUpdate) -> Document:
         try:
@@ -53,8 +51,8 @@ class DocumentRepository:
             if document_update.get_metadata() is not None:
                 update_document.update_metadata(document_update.get_metadata())
             return self.save_document(update_document)
-        except Exception as e:
-            raise ValueError("Database connection failed") from e
+        except Exception:
+            raise ValueError("Database error: Failed to update document")
 
     def delete_document(self, document_id: UUID) -> bool:
         try:
@@ -62,5 +60,5 @@ class DocumentRepository:
             if result.deleted_count == 0:
                 raise ValueError(f"Document with ID {document_id} not found")
             return True
-        except Exception as e:
-            raise ValueError("Database connection failed") from e
+        except Exception:
+            raise ValueError("Database error: Failed to delete document")
