@@ -21,6 +21,10 @@ class DocumentUpdate(BaseModel):
     """Model for updating an existing document."""
     title: Optional[str] = None
     metadata: Optional[DocumentMetadata] = None
+    def get_title(self) -> str | None:
+        return self.title
+    def get_metadata(self) -> DocumentMetadata | None:
+        return self.metadata
 
 
 class DocumentResponse(DocumentBase):

@@ -19,6 +19,10 @@ class ChunkCreate(ChunkBase):
 class ChunkUpdate(BaseModel):
     text: str|None = None
     metadata: ChunkMetadata|None = None
+    def get_text(self) -> str | None:
+        return self.text
+    def get_metadata(self) -> ChunkMetadata | None:
+        return self.metadata
 
 class ChunkResponse(ChunkBase):
     id: UUID = Field(..., description="Unique identifier for the chunk")

@@ -36,22 +36,18 @@ class LibraryService:
         )
         return self.save_library(library)
 
-    # TODO: Redo in repository
     def update_library(self, library_id: UUID, library_update: LibraryUpdate) -> Library | None:
-        library = self.get_library(library_id)
-        if not library:
+        try:
+            return self.queue_manager.enqueue_operation(
+                "library",
+                library_id,
+                self.library_repository.update_library,
+                library_id,
+                library_update
+            )
+        except Exception as e:
+            logger.error(f"Error updating library: {str(e)}")
             return None
-
-        if library_update.title is not None:
-            library.update_library_title(library_update.title)
-        if library_update.description is not None:
-            library.update_library_description(library_update.description)
-        if library_update.index_type is not None:
-            library.update_index_type(library_update.index_type)
-        if library_update.metadata is not None:
-            library.update_metadata(library_update.metadata)
-
-        return self.save_library(library)
 
     def save_library(self, library: Library) -> Library:
         try:

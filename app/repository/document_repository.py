@@ -1,7 +1,7 @@
 from uuid import UUID
 from pymongo.collection import Collection
 import logging
-from app.data_models.document import Document
+from app.data_models.document import Document, DocumentUpdate
 from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,17 @@ class DocumentRepository:
                     f"Failed to save Documebt with ID {document.get_document_id()} to database"
                 )
             return document
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
+
+    def update_document(self, document_id: UUID, document_update: DocumentUpdate) -> Document:
+        try:
+            update_document = self.get_document(document_id)
+            if document_update.get_title() is not None:
+                update_document.update_title(document_update.get_title())
+            if document_update.get_metadata() is not None:
+                update_document.update_metadata(document_update.get_metadata())
+            return self.save_document(update_document)
         except Exception as e:
             raise ValueError("Database connection failed") from e
 

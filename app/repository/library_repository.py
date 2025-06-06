@@ -2,7 +2,7 @@ from uuid import UUID
 from pymongo.collection import Collection
 from pymongo.database import Database
 import logging
-from app.data_models.library import Library
+from app.data_models.library import Library, LibraryUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,21 @@ class LibraryRepository:
             return Library(**result)
         except Exception as e:
             raise
+
+    def update_library(self, library_id: UUID, library_update: LibraryUpdate) -> Library:
+        try:
+            update_library = self.get_library(library_id)
+            if library_update.get_title() is not None:
+                update_library.update_library_title(library_update.get_title())
+            if library_update.get_description() is not None:
+                update_library.update_library_description(library_update.get_description())
+            if library_update.get_index_type() is not None:
+                update_library.update_index_type(library_update.get_index_type())
+            if library_update.get_metadata() is not None:
+                update_library.update_metadata(library_update.get_metadata())
+            return self.save_library(update_library)
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
 
     def delete_library(self, library_id: UUID) -> bool:
         try:

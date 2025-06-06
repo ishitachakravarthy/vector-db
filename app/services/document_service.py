@@ -36,16 +36,17 @@ class DocumentService:
         return self.save_document(document)
 
     def update_document(self, document_id: UUID, document_update: DocumentUpdate) -> Optional[Document]:
-        document = self.get_document(document_id)
-        if not document:
+        try:
+            return self.queue_manager.enqueue_operation(
+                "document",
+                document_id,
+                self.document_repository.update_document,
+                document_id,
+                document_update
+            )
+        except Exception as e:
+            logger.error(f"Error updating document: {str(e)}")
             return None
-
-        if document_update.title is not None:
-            document.update_title(document_update.title)
-        if document_update.metadata is not None:
-            document.update_metadata(document_update.metadata)
-
-        return self.save_document(document)
 
     def save_document(self, document: Document) -> Document:
         try:

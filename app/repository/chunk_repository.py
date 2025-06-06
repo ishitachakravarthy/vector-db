@@ -1,7 +1,7 @@
 from uuid import UUID
 from pymongo.collection import Collection
 import logging
-from app.data_models.chunk import Chunk
+from app.data_models.chunk import Chunk, ChunkUpdate
 from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,17 @@ class ChunkRepository:
                     f"Failed to save chunk with ID {chunk.get_chunk_id()} to database"
                 )
             return chunk
+        except Exception as e:
+            raise ValueError("Database connection failed") from e
+
+    def update_chunk(self, chunk_id: UUID, chunk_update: ChunkUpdate) -> Chunk:
+        try:
+            update_chunk = self.get_chunk(chunk_id)
+            if chunk_update.get_text() is not None:
+                update_chunk.update_chunk_text(chunk_update.get_text())
+            if chunk_update.get_metadata() is not None:
+                update_chunk.update_metadata(chunk_update.get_metadata())
+            return self.save_chunk(update_chunk)
         except Exception as e:
             raise ValueError("Database connection failed") from e
 

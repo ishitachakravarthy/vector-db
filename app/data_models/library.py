@@ -17,6 +17,14 @@ class LibraryUpdate(BaseModel):
     description: str | None = None
     index_type: str | None = None
     metadata: LibraryMetadata | None = Field(None, description="Library metadata")
+    def get_title(self) -> str | None:
+        return self.title
+    def get_description(self) -> str | None:
+        return self.description
+    def get_index_type(self) -> str | None:
+        return self.index_type
+    def get_metadata(self) -> LibraryMetadata | None:
+        return self.metadata
 
 class LibraryResponse(LibraryBase):
     id: UUID = Field(..., description="Unique identifier for the library")
