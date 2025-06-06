@@ -1,6 +1,9 @@
 from uuid import UUID
 import logging
+
+from app.data_models.library import Library
 from app.repository.mongo_repository import MongoRepository
+from app.services.queue_manager import QueueManager
 from app.indexing.base_index import BaseIndex
 from app.indexing.hnsw_index import HNSWIndex
 from app.indexing.flat_index import FlatIndex
@@ -22,48 +25,46 @@ class IndexService:
     def __init__(self, repository: MongoRepository):
         self.library_repository = repository.library_repo
         self.chunk_repository = repository.chunk_repo
+        self.queue_manager = QueueManager()
 
     def get_index_class(self, index_type: str) -> type[BaseIndex]:
         if index_type not in self.INDEX_TYPES:
             raise ValueError(f"Unsupported index type: {index_type}")
         return self.INDEX_TYPES[index_type]
 
-    def get_index(self, library_id: UUID) -> BaseIndex:
-        try:
-            index_type = self.library_repository.get_index_type(library_id)
-            index_class = self.get_index_class(index_type)
-            index_data = self.library_repository.get_index_data(library_id)
+    def get_index(self, library_id: UUID) -> Library:
+        return self.queue_manager.enqueue_operation(
+            "index",
+            library_id,
+            self.library_repository.get_library,
+            library_id
+        )
 
-            if index_data:
-                index = index_class.deserialize(index_data)
-            else:
-                index = index_class()
-            return index
-        except Exception as e:
-            raise ValueError(f"Error getting/initializing index: {str(e)}")
+    def add_vector(self, library_id: UUID, vector_id: UUID, vector: List[float]) -> bool:
+        library = self.get_index(library_id)
+        if not library:
+            return False
 
-    def add_vector(self, library_id: UUID, chunk_id: UUID, vector: list[float]) -> None:
-        try:
-            self.chunk_repository.get_chunk(chunk_id)
+        def add_vector_operation():
+            try:
+                library.add_vector(vector_id, vector)
+                return self.library_repository.save_library(library)
+            except Exception as e:
+                logger.error(f"Error adding vector: {str(e)}")
+                raise
 
-            index = self.get_index(library_id)
-            index.add_vector(chunk_id, vector)
-            self.save_new_index(library_id, None, index)
-        except Exception as e:
-            raise ValueError(f"Error adding vector to index: {str(e)}")
+        return self.queue_manager.enqueue_operation(
+            "index",
+            library_id,
+            add_vector_operation
+        )
 
-    def search_vectors(
-        self, library_id: UUID, query_vector: list[float], k: int = 3
-    ) -> list[UUID]:
-        try:
-            index = self.get_index(library_id)
-            results = index.search(query_vector, k)
-            if not results:
-                logger.warning(f"No results found for query in library {library_id}")
-            return results
-        except Exception as e:
-            logger.error(f"Error searching vectors: {str(e)}")
-            raise
+    def search_vectors(self, library_id: UUID, query_vector: List[float], k: int = 5) -> List[UUID]:
+        library = self.get_index(library_id)
+        if not library:
+            return []
+
+        return library.search_vectors(query_vector, k)
 
     def search(self, library_id: UUID, query_text: str, k: int = 3) -> list[Chunk]:
         try:
@@ -77,14 +78,24 @@ class IndexService:
         except ValueError as e:
             raise ValueError(f"Validation error in search: {str(e)}")
 
-    def delete_vector(self, library_id: UUID, chunk_id: UUID) -> None:
-        try:
-            index = self.get_index(library_id)
-            index.delete_vector(chunk_id)
-            self.save_new_index(library_id, None, index)
-        except Exception as e:
-            logger.error(f"Error deleting vector from index: {str(e)}")
-            raise
+    def delete_vector(self, library_id: UUID, vector_id: UUID) -> bool:
+        library = self.get_index(library_id)
+        if not library:
+            return False
+
+        def delete_vector_operation():
+            try:
+                library.delete_vector(vector_id)
+                return self.library_repository.save_library(library)
+            except Exception as e:
+                logger.error(f"Error deleting vector: {str(e)}")
+                raise
+
+        return self.queue_manager.enqueue_operation(
+            "index",
+            library_id,
+            delete_vector_operation
+        )
 
     def get_index_stats(self, library_id: UUID) -> dict:
         try:

@@ -1,7 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
 import logging
-from datetime import datetime
 
 from app.data_models.library import Library, LibraryCreate, LibraryUpdate
 from app.repository.mongo_repository import MongoRepository
@@ -91,9 +90,3 @@ class LibraryService:
             library_id,
             delete_operation
         )
-
-    def get_queue_size(self, library_id: UUID) -> int:
-        return self.queue_manager.get_queue_size("library", library_id)
-
-    def get_last_processed_time(self, library_id: UUID) -> datetime:
-        return self.queue_manager.get_last_processed_time("library", library_id)
