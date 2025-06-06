@@ -4,32 +4,32 @@ from app.data_models.metadata import LibraryMetadata
 
 class LibraryBase(BaseModel):
     title: str = Field(..., description="Title of the library")
-    description:str|None = Field(None, description="Description of the library")
-    index_type: str | None = Field(
-        None, description="Type of index to use (flat, ivf or hnsw)"
-    )
+    description: str|None = Field(default=None, description="Description of the library")
+    index_type: str|None = Field(default=None, description="Type of index to use (flat, ivf or hnsw)")
 
 class LibraryCreate(LibraryBase):
-    metadata: LibraryMetadata | None = None
+    metadata: LibraryMetadata|None = Field(default=None, description="Library metadata")
 
-class LibraryUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    index_type: str | None = None
-    metadata: LibraryMetadata | None = Field(None, description="Library metadata")
-    def get_title(self) -> str | None:
+class LibraryUpdate(LibraryBase):
+    metadata: LibraryMetadata|None = Field(default=None, description="Updated library metadata")
+
+    def get_title(self) -> str|None:
         return self.title
-    def get_description(self) -> str | None:
+
+    def get_description(self) -> str|None:
         return self.description
-    def get_index_type(self) -> str | None:
+
+    def get_index_type(self) -> str|None:
         return self.index_type
-    def get_metadata(self) -> LibraryMetadata | None:
+
+    def get_metadata(self) -> LibraryMetadata|None:
         return self.metadata
 
 class LibraryResponse(LibraryBase):
     id: UUID = Field(..., description="Unique identifier for the library")
     documents: list[UUID] = Field(default_factory=list, description="List of document IDs in the library")
-    metadata: LibraryMetadata | None = Field(None, description="Library metadata")
+    metadata: LibraryMetadata = Field(default_factory=LibraryMetadata, description="Library metadata")
+    
     class Config:
         from_attributes = True
 
@@ -37,34 +37,19 @@ class LibraryResponse(LibraryBase):
 class Library(BaseModel):
     """A library of documents with vector embeddings."""
 
-    id: UUID = Field(default_factory=uuid4)
-    title: str
-    description: str | None = None
-    index_type: str | None = None
-    index_data: dict = Field(default_factory=dict)
-    documents: list[UUID] = Field(default_factory=list)
-    metadata: LibraryMetadata = Field(default_factory=LibraryMetadata)
+    id: UUID = Field(default_factory=uuid4, description="Unique identifier for the library")
+    title: str = Field(..., description="Title of the library")
+    description: str|None = Field(default=None, description="Description of the library")
+    index_type: str|None = Field(default=None, description="Type of index to use (flat, ivf or hnsw)")
+    index_data: dict = Field(default_factory=dict, description="Index-specific data")
+    documents: list[UUID] = Field(default_factory=list, description="List of document IDs in the library")
+    metadata: LibraryMetadata = Field(default_factory=LibraryMetadata, description="Library metadata")
 
     def get_library_id(self) -> UUID:
         return self.id
 
-    def get_library_title(self) -> str:
-        return self.title
-
-    def get_library_description(self) -> str | None:
-        return self.description
-
-    def get_index_type(self) -> str | None:
-        return self.index_type
-
-    def get_index_data(self) -> dict:
-        return self.index_data
-
     def get_all_doc_ids(self) -> list[UUID]:
         return self.documents
-
-    def get_metadata(self) -> LibraryMetadata:
-        return self.metadata
 
     def update_library_title(self, new_title: str) -> None:
         self.title = new_title
@@ -98,7 +83,3 @@ class Library(BaseModel):
             self.metadata.update_timestamp()
             return True
         return False
-
-    def delete_all_documents(self) -> None:
-        self.documents = []
-        self.metadata.update_timestamp()

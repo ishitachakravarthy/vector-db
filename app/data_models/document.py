@@ -7,33 +7,29 @@ from datetime import datetime
 
 
 class DocumentBase(BaseModel):
-    """Base model for document data."""
     title: str = Field(..., description="Title of the document")
-    library_id: UUID = Field(..., description="Unique identifier for the library")
+    library_id: UUID = Field(..., description="ID of the library this document belongs to")
 
 
 class DocumentCreate(DocumentBase):
-    """Model for creating a new document."""
-    metadata: Optional[DocumentMetadata] = Field(default_factory=DocumentMetadata)
+    metadata: DocumentMetadata|None = Field(default=None, description="Document metadata")
 
 
 class DocumentUpdate(BaseModel):
-    """Model for updating an existing document."""
-    title: Optional[str] = None
-    metadata: Optional[DocumentMetadata] = None
-    def get_title(self) -> str | None:
+    title: str|None = Field(default=None, description="New title for the document")
+    metadata: DocumentMetadata|None = Field(default=None, description="Updated document metadata")
+
+    def get_title(self) -> str|None:
         return self.title
-    def get_metadata(self) -> DocumentMetadata | None:
+
+    def get_metadata(self) -> DocumentMetadata|None:
         return self.metadata
 
 
 class DocumentResponse(DocumentBase):
-    """Model for document responses."""
     id: UUID = Field(..., description="Unique identifier for the document")
-    chunks: list[UUID] = Field(
-        default_factory=list, description="List of chunk IDs in the document"
-    )
-    metadata: DocumentMetadata | None = Field(None, description="Document metadata")
+    chunks: list[UUID] = Field(default_factory=list, description="List of chunk IDs in the document")
+    metadata: DocumentMetadata = Field(default_factory=DocumentMetadata, description="Document metadata")
     
     class Config:
         from_attributes = True
@@ -42,33 +38,27 @@ class DocumentResponse(DocumentBase):
 class Document(BaseModel):
     """A document containing multiple chunks of text."""
 
-    id: UUID = Field(default_factory=uuid4)
-    library_id: UUID
-    title: str
-    chunks: list[UUID] = Field(default_factory=list)
-    metadata: DocumentMetadata = Field(default_factory=DocumentMetadata)
+    id: UUID = Field(default_factory=uuid4, description="Unique identifier for the document")
+    library_id: UUID = Field(..., description="ID of the library this document belongs to")
+    title: str = Field(..., description="Title of the document")
+    chunks: list[UUID] = Field(default_factory=list, description="List of chunk IDs in the document")
+    metadata: DocumentMetadata = Field(default_factory=DocumentMetadata, description="Document metadata")
 
     def __init__(self, **data):
         super().__init__(**data)
         if not self.chunks:
             self.chunks = []
         if not self.metadata:
-            self.metadata = {}
+            self.metadata = DocumentMetadata()
 
     def get_document_id(self) -> UUID:
         return self.id
-
-    def get_doc_title(self) -> str:
-        return self.title
 
     def get_library_id(self) -> UUID:
         return self.library_id
 
     def get_all_chunks(self) -> list[UUID]:
         return self.chunks
-
-    def get_metadata(self) -> DocumentMetadata:
-        return self.metadata
 
     def update_title(self, new_title: str) -> None:
         self.title = new_title
@@ -83,16 +73,9 @@ class Document(BaseModel):
             self.chunks.append(chunk_id)
             self.metadata.update_timestamp()
 
-    def has_chunk(self, chunk_id: UUID) -> bool:
-        return chunk_id in self.chunks
-
     def delete_chunk(self, chunk_id: UUID) -> bool:
         if chunk_id in self.chunks:
             self.chunks.remove(chunk_id)
             self.metadata.update_timestamp()
             return True
         return False
-
-    def delete_all_chunks(self) -> None:
-        self.chunks = []
-        self.metadata.update_timestamp()
