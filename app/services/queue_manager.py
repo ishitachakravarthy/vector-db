@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Set
 from uuid import UUID
 import logging
 from datetime import datetime, timezone
@@ -17,6 +17,8 @@ class QueueManager:
         self.locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         # Dictionary to store the last processed timestamp for each resource
         self.last_processed: Dict[str, datetime] = defaultdict(lambda: datetime.min.replace(tzinfo=timezone.utc))
+        # Set of resources currently being processed
+        self.processing_resources: Set[str] = set()
         
     async def enqueue_operation(
         self,
@@ -28,16 +30,6 @@ class QueueManager:
     ) -> Any:
         """
         Enqueue an operation for a specific resource.
-        
-        Args:
-            resource_type: Type of resource (e.g., 'library', 'document')
-            resource_id: ID of the resource
-            operation: Async function to execute
-            *args: Arguments for the operation
-            **kwargs: Keyword arguments for the operation
-            
-        Returns:
-            Result of the operation
         """
         resource_key = f"{resource_type}:{resource_id}"
         queue = self.queues[resource_key]
@@ -50,15 +42,23 @@ class QueueManager:
         async def operation_wrapper():
             try:
                 async with lock:
+                    # Mark resource as being processed
+                    self.processing_resources.add(resource_key)
+                    
                     # Execute the operation
                     result = await operation(*args, **kwargs)
+                    
                     # Update last processed timestamp
                     self.last_processed[resource_key] = datetime.now(timezone.utc)
+                    
                     # Set the result
                     future.set_result(result)
             except Exception as e:
                 future.set_exception(e)
             finally:
+                # Remove from processing set
+                self.processing_resources.remove(resource_key)
+                
                 # Clean up if this is the last operation in the queue
                 if queue.empty():
                     del self.queues[resource_key]
@@ -95,4 +95,9 @@ class QueueManager:
     def get_last_processed_time(self, resource_type: str, resource_id: UUID) -> datetime:
         """Get the last processed timestamp for a resource."""
         resource_key = f"{resource_type}:{resource_id}"
-        return self.last_processed[resource_key] 
+        return self.last_processed[resource_key]
+    
+    def is_resource_processing(self, resource_type: str, resource_id: UUID) -> bool:
+        """Check if a resource is currently being processed."""
+        resource_key = f"{resource_type}:{resource_id}"
+        return resource_key in self.processing_resources 
