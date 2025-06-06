@@ -12,6 +12,7 @@ class DocumentBase(BaseModel):
 
 
 class DocumentCreate(DocumentBase):
+    content: str = Field(default="", description="Content of the document")
     metadata: DocumentMetadata|None = Field(default=None, description="Document metadata")
 
 

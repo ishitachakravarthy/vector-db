@@ -1,5 +1,5 @@
+from typing import List, Optional
 from uuid import UUID
-from typing import Optional
 
 from app.data_models.document import Document, DocumentCreate, DocumentUpdate
 from app.repository.mongo_repository import MongoRepository
@@ -13,87 +13,101 @@ class DocumentService:
         self.chunk_repository = repository.chunk_repo
         self.queue_manager = QueueManager()
 
-    def get_document(self, document_id: UUID) -> Document:
+    async def get_document(self, document_id: UUID) -> Document:
         try:
-            return self.queue_manager.enqueue_operation(
+            return await self.queue_manager.enqueue_operation(
                 "document",
                 document_id,
                 self.document_repository.get_document,
-                document_id,
+                document_id
             )
         except Exception as e:
             raise ValueError("Service error: Failed to queue document retrieval") from e
 
-    def list_documents(self) -> list[Document]:
-        return self.document_repository.list_documents()
-
-    def create_document(self, document_create: DocumentCreate) -> Document:
+    async def list_documents(self, library_id: UUID | None = None) -> List[Document]:
         try:
-            document = Document(
-                title=document_create.title,
-                library_id=document_create.library_id,
-                metadata=document_create.metadata,
-            )
-            return self.save_document(document)
+            if library_id is not None:
+                # Verify library exists
+                library = await self.library_repository.get_library(library_id)
+                if not library:
+                    raise ValueError(f"Library with ID {library_id} not found")
+
+                return await self.queue_manager.enqueue_operation(
+                    "document",
+                    library_id,
+                    self.document_repository.list_documents,
+                    library_id
+                )
+            else:
+                # List all documents
+                return await self.queue_manager.enqueue_operation(
+                    "document",
+                    None,
+                    self.document_repository.list_documents
+                )
         except Exception as e:
-            raise ValueError("Service error: Failed to create document") from e
+            raise ValueError(f"Service error: Failed to queue document listing: {str(e)}") from e
 
-    def update_document(
-        self, document_id: UUID, document_update: DocumentUpdate
-    ) -> Optional[Document]:
+    async def create_document(self, document_create: DocumentCreate) -> Document:
         try:
-            return self.queue_manager.enqueue_operation(
+            # Verify library exists
+            library = await self.library_repository.get_library(document_create.library_id)
+            if not library:
+                raise ValueError(f"Library with ID {document_create.library_id} not found")
+
+            document = Document(
+                library_id=document_create.library_id,
+                title=document_create.title,
+                content=document_create.content,
+                metadata=document_create.metadata
+            )
+            return await self.save_document(document)
+        except Exception as e:
+            raise ValueError(f"Service error: Failed to create document: {str(e)}") from e
+
+    async def update_document(self, document_id: UUID, document_update: DocumentUpdate) -> Document:
+        try:
+            # First get the document to verify it exists
+            document = await self.get_document(document_id)
+            if not document:
+                raise ValueError(f"Document with ID {document_id} not found")
+
+            # Convert update to dict and remove None values
+            update_dict = document_update.model_dump(exclude_unset=True)
+            
+            return await self.queue_manager.enqueue_operation(
                 "document",
                 document_id,
                 self.document_repository.update_document,
                 document_id,
-                document_update,
+                update_dict
             )
         except Exception as e:
-            raise ValueError("Service error: Failed to update document") from e
+            raise ValueError(f"Service error: Failed to queue document update: {str(e)}") from e
 
-    def save_document(self, document: Document) -> Document:
+    async def save_document(self, document: Document) -> Document:
         try:
-            saved_document: Document = self.queue_manager.enqueue_operation(
+            # Verify library exists
+            library = await self.library_repository.get_library(document.library_id)
+            if not library:
+                raise ValueError(f"Library with ID {document.library_id} not found")
+
+            return await self.queue_manager.enqueue_operation(
                 "document",
-                document.get_document_id(),
+                document.id,
                 self.document_repository.save_document,
-                document,
+                document
             )
-            library = self.library_repository.get_library(
-                saved_document.get_library_id()
-            )
-            if not library:
-                raise ValueError(
-                    f"Library with ID {saved_document.get_library_id()} not found"
-                )
-            library.add_document(saved_document.get_document_id())
-            self.library_repository.save_library(library)
-            return saved_document
         except Exception as e:
-            raise ValueError(
-                "Service error: Failed to save document and update library"
-            ) from e
+            raise ValueError(f"Service error: Failed to save document: {str(e)}") from e
 
-    def delete_document(self, document_id: UUID) -> bool:
+    async def delete_document(self, document_id: UUID) -> bool:
         try:
-            document = self.get_document(document_id)
-            library = self.library_repository.get_library(document.get_library_id())
-            if not library:
-                raise ValueError(
-                    f"Library with ID {document.get_library_id()} not found"
-                )
-            def delete_operation():
-                for chunk_id in document.get_all_chunks():
-                    self.chunk_repository.delete_chunk(chunk_id)
-                library.delete_document(document_id)
-                self.library_repository.save_library(library)
-                return self.document_repository.delete_document(document_id)
-
-            return self.queue_manager.enqueue_operation(
-                "document", document_id, delete_operation
+            return await self.queue_manager.enqueue_operation(
+                "document",
+                document_id,
+                self.document_repository.delete_document,
+                document_id
             )
         except Exception as e:
-            raise ValueError(
-                "Service error: Failed to delete document and its chunks"
-            ) from e
+            raise ValueError("Service error: Failed to queue document deletion") from e
