@@ -32,16 +32,15 @@ class LibraryRepository:
     def save_library(self, library: Library) -> Library:
         try:
             library_dict = library.model_dump()
-            result = self.libraries.update_one(
+            result = self.libraries.find_one_and_update(
                 {"_id": library.get_library_id()},
                 {"$set": library_dict},
                 upsert=True,
+                return_document=True
             )
-            if not (result.matched_count == 1 or result.upserted_id is not None):
-                raise ValueError(
-                    f"Failed to save Library with ID {library.get_library_id()} to database"
-                )
-            return library
+            if not result:
+                raise ValueError(f"Failed to save Library with ID {library.get_library_id()}")
+            return Library(**result)
         except Exception as e:
             raise
 
@@ -64,15 +63,25 @@ class LibraryRepository:
         return library.index_data if library else None
 
     def update_index_data(self, library_id: UUID, index_data: dict) -> None:
-        library = self.get_library(library_id)
-        if not library:
-            raise ValueError(f"Library with ID {library_id} not found")
-        library.update_index_data(index_data)
-        self.save_library(library)
+        try:
+            result = self.libraries.find_one_and_update(
+                {"_id": library_id},
+                {"$set": {"index_data": index_data}},
+                return_document=True
+            )
+            if not result:
+                raise ValueError(f"Library with ID {library_id} not found")
+        except Exception as e:
+            raise
 
     def update_index_type(self, library_id: UUID, index_type: str) -> None:
-        library = self.get_library(library_id)
-        if not library:
-            raise ValueError(f"Library with ID {library_id} not found")
-        library.update_index_type(index_type)
-        self.save_library(library)
+        try:
+            result = self.libraries.find_one_and_update(
+                {"_id": library_id},
+                {"$set": {"index_type": index_type}},
+                return_document=True
+            )
+            if not result:
+                raise ValueError(f"Library with ID {library_id} not found")
+        except Exception as e:
+            raise

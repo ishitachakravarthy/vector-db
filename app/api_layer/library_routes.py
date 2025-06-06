@@ -39,15 +39,11 @@ def list_libraries(
         raise HTTPException(status_code=500, detail=f"Failed to list libraries: {str(e)}")
 
 @library_router.get("/{library_id}", response_model=LibraryResponse)
-def get_library(
-    library_id: UUID,
-    service: LibraryService = Depends(get_library_service)
-):
-    try:
-        library = service.get_library(library_id)
-        return library
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get library: {str(e)}")
+def get_library(library_id: UUID, service: LibraryService = Depends(get_library_service)):
+    library = service.get_library(library_id)
+    if not library:
+        raise HTTPException(status_code=404, detail="Library not found")
+    return library
 
 @library_router.put("/{library_id}", response_model=LibraryResponse)
 def update_library(
