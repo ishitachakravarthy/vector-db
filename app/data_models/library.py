@@ -10,7 +10,10 @@ class LibraryBase(BaseModel):
 class LibraryCreate(LibraryBase):
     metadata: LibraryMetadata|None = Field(default=None, description="Library metadata")
 
-class LibraryUpdate(LibraryBase):
+class LibraryUpdate(BaseModel):
+    title: str|None = Field(default=None, description="New title for the library")
+    description: str|None = Field(default=None, description="New description for the library")
+    index_type: str|None = Field(default=None, description="New index type (flat, ivf or hnsw)")
     metadata: LibraryMetadata|None = Field(default=None, description="Updated library metadata")
 
     def get_title(self) -> str|None:

@@ -11,7 +11,7 @@ def get_library_service(repo: MongoRepository = Depends()):
     return LibraryService(repo)
 
 @library_router.post("/", response_model=LibraryResponse)
-def create_library(
+async def create_library(
     title: str = Query(..., description="Title of the library"),
     description: Optional[str] = Query(None, description="Description of the library"),
     index_type: Optional[str] = Query(None, description="Type of index to use (flat, ivf or hnsw)"),
@@ -23,53 +23,67 @@ def create_library(
             description=description,
             index_type=index_type
         )
-        return service.create_library(library_create)
+        return await service.create_library(library_create)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create library: {str(e)}")
 
 @library_router.get("/list", response_model=List[LibraryResponse])
-def list_libraries(
+async def list_libraries(
     service: LibraryService = Depends(get_library_service)
 ):
     try:
-        return service.list_libraries()
+        return await service.list_libraries()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list libraries: {str(e)}")
 
 @library_router.get("/{library_id}", response_model=LibraryResponse)
-def get_library(library_id: UUID, service: LibraryService = Depends(get_library_service)):
-    library = service.get_library(library_id)
-    if not library:
-        raise HTTPException(status_code=404, detail="Library not found")
-    return library
+async def get_library(library_id: UUID, service: LibraryService = Depends(get_library_service)):
+    try:
+        library = await service.get_library(library_id)
+        if not library:
+            raise HTTPException(status_code=404, detail="Library not found")
+        return library
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get library: {str(e)}")
 
 @library_router.put("/{library_id}", response_model=LibraryResponse)
-def update_library(
+async def update_library(
     library_id: UUID,
     title: Optional[str] = Query(None, description="New title for the library"),
     description: Optional[str] = Query(None, description="New description for the library"),
     index_type: Optional[str] = Query(None, description="New index type (flat, ivf or hnsw)"),
     service: LibraryService = Depends(get_library_service)
 ):
-    library_update = LibraryUpdate(
-        title=title,
-        description=description,
-        index_type=index_type
-    )
-    library = service.update_library(library_id, library_update)
-    if not library:
-        raise HTTPException(status_code=404, detail="Library not found")
-    return library
+    try:
+        library_update = LibraryUpdate(
+            title=title,
+            description=description,
+            index_type=index_type
+        )
+        library = await service.update_library(library_id, library_update)
+        if not library:
+            raise HTTPException(status_code=404, detail="Library not found")
+        return library
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update library: {str(e)}")
 
-# TODO: Delete documents in the library
 @library_router.delete("/{library_id}")
-def delete_library(
+async def delete_library(
     library_id: UUID,
     service: LibraryService = Depends(get_library_service)
 ):
-    success = service.delete_library(library_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Library not found")
-    return {"message": "Library deleted successfully"} 
+    try:
+        success = await service.delete_library(library_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Library not found")
+        return {"message": "Library deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete library: {str(e)}") 
