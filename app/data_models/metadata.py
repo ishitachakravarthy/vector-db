@@ -24,8 +24,8 @@ class BaseMetadata(ABC, BaseModel):
 
 class ChunkMetadata(BaseMetadata):
     """Metadata specific to chunks."""
-    section: str = Field(..., description="Section of the document this chunk belongs to")
-    order: int = Field(..., description="Order of the chunk in the document")
+    section: str | None = Field(default="Body", description="Section of the document this chunk belongs to")
+    order: int | None = Field(default=0, description="Order of the chunk in the document")
 
     def get_type(self) -> str:
         return "Chunk"
@@ -33,7 +33,7 @@ class ChunkMetadata(BaseMetadata):
 class DocumentMetadata(BaseMetadata):
     """Metadata specific to documents."""
     author: str | None = Field(default=None, description="Author of the document")
-    status: str = Field(default="draft", description="Status of the document (draft, published, archived)")
+    status: str|None = Field(default="draft", description="Status of the document (draft, published, archived)")
 
     def get_type(self) -> str:
         return "Document"

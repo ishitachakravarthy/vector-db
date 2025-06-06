@@ -23,9 +23,9 @@ class ChunkRepository:
         except Exception as e:
             raise ValueError("Database connection failed")
 
-    def list_chunks(self) -> list[Chunk]:
+    def list_chunks(self) -> list[UUID]:
         try:
-            return [Chunk(**chunk) for chunk in self.chunks.find()]
+            return [Chunk(**chunk).get_chunk_id() for chunk in self.chunks.find()]
         except Exception as e:
             raise ValueError("Database connection failed")
 

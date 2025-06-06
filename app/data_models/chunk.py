@@ -2,13 +2,31 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 from app.data_models.metadata import ChunkMetadata
 
-
 from datetime import datetime, timezone
 import cohere
 from app.config import COHERE_API_KEY
 import logging
 
 logger = logging.getLogger(__name__)
+
+class ChunkBase(BaseModel):
+    document_id: UUID = Field(..., description="ID of the document this chunk belongs to")
+    text: str = Field(..., description="Text content of the chunk")
+
+class ChunkCreate(ChunkBase):
+    metadata: ChunkMetadata|None = None
+
+class ChunkUpdate(BaseModel):
+    text: str|None = None
+    metadata: ChunkMetadata|None = None
+
+class ChunkResponse(ChunkBase):
+    id: UUID = Field(..., description="Unique identifier for the chunk")
+    embedding: list[float] | None = Field(None, description="Vector embedding of the chunk text")
+    metadata: ChunkMetadata = Field(default_factory=ChunkMetadata, description="Chunk metadata")
+    
+    class Config:
+        from_attributes = True
 
 class Chunk(BaseModel):
     """A chunk of text from a document with its vector embedding."""
